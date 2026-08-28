@@ -63,16 +63,33 @@ def check_password() -> bool:
 
 
 # ----------------------------------------------------------------------------
-# Shared building blocks (all text below is plain ASCII on purpose - it gets
-# pasted into ChatGPT, so no smart quotes / dashes that could break on paste).
+# Shared building blocks. All text that ends up in a customer prompt is plain
+# ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
 # ----------------------------------------------------------------------------
 
+# Line-art vocabulary - used for the INTERIOR pages.
 STYLE_PRESETS = {
     "Pencil & ink linework": "hand-drawn pencil-and-ink linework with slightly irregular, organic lines and a gentle handmade feel",
     "Bold simple outlines (ages 4-7)": "bold, thick, very clean outlines with large simple shapes and little small detail, easy for young children to color",
     "Classic storybook": "classic storybook line art with fine, even pen lines and a timeless, woodcut-inspired look",
     "Whimsical thick-and-thin": "whimsical line art that mixes thick and thin strokes with playful, flowing lines",
     "Clean modern minimal": "clean modern minimalist line art with uniform medium-weight lines and lots of open white space",
+}
+
+# Full-color version of the same 5 styles - used for the COVERS.
+COVER_STYLE = {
+    "Pencil & ink linework": "colored-pencil-and-ink children's book illustration: ink linework with soft colored-pencil shading, warm and handmade",
+    "Bold simple outlines (ages 4-7)": "bold clean outlines filled with bright, cheerful flat color, simple and punchy for young children",
+    "Classic storybook": "classic painted storybook illustration with rich, warm color and gentle texture",
+    "Whimsical thick-and-thin": "whimsical illustration with lively thick-and-thin linework and playful, saturated color",
+    "Clean modern minimal": "clean modern illustration with flat, harmonious color and generous open space",
+}
+
+BOOK_SHAPE = {
+    "Portrait (tall)": ("Portrait orientation, clearly taller than wide (about 2:3). Keep extra open "
+                        "white margin at the top and bottom - the final printed page may be a different height."),
+    "Square (1:1)": "Square 1:1 composition, equal width and height.",
+    "Landscape (wide)": "Landscape orientation, clearly wider than tall (about 3:2).",
 }
 
 LINE_ART_LOCK = (
@@ -84,6 +101,12 @@ LINE_ART_LOCK = (
     "No frame, no border, no rectangle around the artwork."
 )
 
+COLOR_COVER_LOCK = (
+    "Full color, professionally finished children's book cover art - bright, appealing, and warm, "
+    "with a harmonious palette and good contrast. This is NOT black and white and NOT a coloring page. "
+    "Keep clear margins; no important element touching the edges; no frame or border."
+)
+
 COMPOSITION = {
     "AUTO (text top, illustration bottom)": ("top third of the page", "lower two thirds of the page"),
     "TOP (text top, illustration bottom)": ("top third of the page", "lower two thirds of the page"),
@@ -92,13 +115,6 @@ COMPOSITION = {
     "RIGHT (text right, illustration left)": ("right third of the page", "left two thirds of the page"),
 }
 
-PAGE_NUMBER_MODES = [
-    "AUTO (odd = bottom-left, even = bottom-right)",
-    "No page number",
-    "Always bottom-left",
-    "Always bottom-right",
-]
-
 FIELD_LABELS = ["STORY TEXT", "STORY SCENE", "ILLUSTRATION TYPE", "ILLUSTRATION DIRECTION"]
 
 COVER_TYPES = {
@@ -106,7 +122,7 @@ COVER_TYPES = {
     "FULL SCENE": "Show the hero character inside a newly arranged story setting, not a copy of any interior page.",
     "CHARACTER FOCUS": "Make the main character the single dominant element on a simple, open background.",
     "GROUP SCENE": "Feature the main characters together in a fresh arrangement, resized and repositioned as needed.",
-    "MINIMAL": "A very simple composition: one hero element and lots of open white space.",
+    "MINIMAL": "A very simple composition: one hero element and lots of open space.",
 }
 
 TITLE_POS = {
@@ -120,7 +136,7 @@ TITLE_POS = {
 # Step 1 - Story Engine prompt
 # ----------------------------------------------------------------------------
 
-def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc):
+def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, shape_label):
     pc = page_count_raw.strip()
     if pc.isdigit():
         pc_line = "Make the book exactly %d pages." % int(pc)
@@ -180,6 +196,7 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc):
         "Keep ILLUSTRATION DIRECTION consistent with the story - never introduce objects, places, or "
         "characters the story does not mention.",
         "Planned drawing style for later, keep the directions compatible with it: " + style_desc + ".",
+        "The finished art will be " + shape_label + " - keep each scene composable in that shape.",
     ]
     return "\n".join(lines)
 
@@ -188,7 +205,7 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc):
 # Step 2 - parse the pasted story, build one image prompt per page
 # ----------------------------------------------------------------------------
 
-# Tolerant page-header match: accepts "=== PAGE 01 ===", "Page 1:", "### PAGE 3 ###",
+# Tolerant page-header match: "=== PAGE 01 ===", "Page 1:", "### PAGE 3 ###",
 # "**PAGE 02**", "-- page 4 --", etc.
 PAGE_SPLIT_RE = re.compile(
     r'^[ \t]*[=#*_\-]*[ \t]*PAGE[ \t]+0*(\d+)[ \t]*[=#*_\-]*[ \t]*:?[ \t]*$',
@@ -234,22 +251,7 @@ def extract_field(block, name):
     return m.group(1).strip() if m else ""
 
 
-def page_number_instruction(mode, page_num):
-    nn = "%02d" % page_num
-    if mode.startswith("No page"):
-        return "Do not draw any page number anywhere on the page."
-    if mode.startswith("Always bottom-left"):
-        pos = "bottom-left corner"
-    elif mode.startswith("Always bottom-right"):
-        pos = "bottom-right corner"
-    else:
-        pos = "bottom-left corner" if page_num % 2 == 1 else "bottom-right corner"
-    return ("Draw the page number '%s' as solid black digits inside a small, thin circle outline in the %s, "
-            "placed inside the page margin, clear of the story text and the artwork. "
-            "No shading or decoration on the circle." % (nn, pos))
-
-
-def build_page_prompt(page_num, fields, char_bible, comp_label, pn_mode, style_desc):
+def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, style_desc):
     text_area, illo_area = COMPOSITION[comp_label]
     story_text = fields.get("STORY TEXT") or "(use the story text for this page from your pasted story)"
     story_scene = fields.get("STORY SCENE") or ""
@@ -265,7 +267,7 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, pn_mode, style_d
                                    "face, clothing, and accessories)")
 
     lines = [
-        "Black and white line art for a single interior page of a children's coloring storybook. Portrait orientation.",
+        "Black and white line art for a single interior page of a children's coloring storybook. " + shape_desc,
         "",
         "CHARACTER (must look identical on every page):",
         bible,
@@ -282,50 +284,49 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, pn_mode, style_d
         ("Central moment: " + story_scene) if story_scene else None,
         type_note,
         "",
-        "PAGE NUMBER:",
-        page_number_instruction(pn_mode, page_num),
-        "",
         "STYLE: " + style_desc + ".",
         LINE_ART_LOCK,
-        ("Do not add any words, title, caption, speech bubble, label, or signature other than the story text "
-         "and page number described above. Do not add characters or objects that are not part of this page's story."),
+        ("Do not add a page number. Do not add any words, title, caption, speech bubble, label, or "
+         "signature other than the story text above. Do not add characters or objects that are not part "
+         "of this page's story."),
     ]
     return "\n".join(l for l in lines if l is not None)
 
 
 # ----------------------------------------------------------------------------
-# Step 3 - cover prompts
+# Step 3 - cover prompts (FULL COLOR)
 # ----------------------------------------------------------------------------
 
-def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label, summary, style_desc):
+def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
+                             summary, char_colors, shape_desc, cover_style_desc):
     title = title.strip()
     if title:
-        title_line = ("TITLE: draw the exact text '" + title + "' as the large, dominant title in clean "
-                      "hand-lettered capitals, solid black outline letters left open inside so they can be "
-                      "colored. Place it " + TITLE_POS[tpos_label] + ".")
+        title_line = ("TITLE: draw the exact text '" + title + "' as the large, dominant title in clean, "
+                      "friendly lettering, in a color that stands out clearly against the background. "
+                      "Place it " + TITLE_POS[tpos_label] + ".")
     else:
         title_line = ("TITLE: create a short, fitting title for this story (based on the summary below) and "
-                      "draw it as the large, dominant title in clean hand-lettered capitals, solid black "
-                      "outline letters left open inside so they can be colored. Place it " +
-                      TITLE_POS[tpos_label] + ".")
+                      "draw it as the large, dominant title in clean, friendly lettering, in a color that "
+                      "stands out clearly against the background. Place it " + TITLE_POS[tpos_label] + ".")
 
     lines = [
-        "Black and white line art FRONT COVER for a children's coloring storybook. Portrait orientation.",
+        "Full color FRONT COVER for a children's coloring storybook. " + shape_desc,
         "",
-        ("HOW TO USE THIS PROMPT: first generate one interior page with this kit's Step 2 prompts. Then "
-         "upload that finished page into ChatGPT together with this prompt, so the character and drawing "
-         "style match."),
+        ("HOW TO USE THIS PROMPT: upload one finished interior page (your black-and-white line art) into "
+         "ChatGPT together with this prompt."),
         "",
-        ("Use the uploaded page ONLY as the reference for the character's look and the line style. Do NOT "
-         "copy its layout or its scene. Design a brand-new cover."),
+        ("The uploaded page is BLACK AND WHITE line art. Use it ONLY as the reference for the character's "
+         "identity, shapes, proportions, and outfit. Do NOT copy its layout or scene, and do NOT make the "
+         "cover black and white. Redraw the same character in full, rich color for a brand-new cover."),
         "",
         "COMPOSITION: " + COVER_TYPES[ctype_label],
         "HERO: the story's main character, drawn large and clearly recognizable in a fresh pose.",
-        ("BACKGROUND: a new, simple cover background suggested by the story's world - open and uncluttered, "
-         "leaving clear space for the title. Do not reuse the interior page's background."),
-        "",
-        title_line,
+        ("BACKGROUND: a new, colorful cover background suggested by the story's world, with clear space "
+         "kept open for the title."),
     ]
+    if char_colors.strip():
+        lines.append("CHARACTER COLORS (keep these exact): " + char_colors.strip() + ".")
+    lines += ["", title_line]
     if subtitle.strip():
         lines.append("SUBTITLE: smaller, placed just under the title: '" + subtitle.strip() + "'.")
     if extra_lines:
@@ -333,53 +334,51 @@ def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, t
     if badge.strip():
         lines.append("BADGE: a small, simple badge shape in one corner containing the text '" + badge.strip() + "'.")
     if summary.strip():
-        lines.append("")
-        lines.append("STORY SUMMARY (for context and the title only, do not print this on the cover): " + summary.strip())
+        lines += ["", "STORY SUMMARY (for context and the title only, do not print it on the cover): " + summary.strip()]
     lines += [
         "",
-        "STYLE: " + style_desc + ".",
-        LINE_ART_LOCK,
+        "STYLE: " + cover_style_desc + ".",
+        COLOR_COVER_LOCK,
         "Do not add any text other than what is listed above. Do not add extra characters or unrelated objects.",
     ]
     return "\n".join(lines)
 
 
-def build_back_cover_prompt(summary, isbn, style_desc):
+def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
     lines = [
-        "Black and white line art BACK COVER for the same children's coloring storybook. Portrait orientation.",
+        "Full color BACK COVER for the same children's coloring storybook. " + shape_desc,
         "",
-        ("HOW TO USE THIS PROMPT: upload your finished FRONT COVER into ChatGPT together with this prompt. "
-         "Match its character, line style, and lettering. Build a NEW layout - do not mirror or copy the "
-         "front cover."),
+        ("HOW TO USE THIS PROMPT: upload your finished FRONT COVER into ChatGPT together with this prompt."),
         "",
-        ("BACKGROUND: a calm, mostly open continuation of the front cover's world, with plenty of white "
-         "space for text."),
-        ("SUPPORTING ART: just one or two small elements (or the character) from the front cover, drawn "
-         "small and secondary, set off to one side so they do not crowd the text."),
+        ("Match the front cover's colors, palette, character, and style exactly. Build a NEW, simple "
+         "layout - do not mirror or copy the front cover."),
+        "",
+        ("KEEP IT SIMPLE: a calm, mostly open background in the same color tone as the front cover, with "
+         "just one small supporting element (or the character drawn small) in an upper or left area. "
+         "Lots of open space."),
         "",
     ]
     if summary.strip():
         lines += [
             ("BLURB: write a short, warm back-cover blurb of 2 to 3 sentences for children and parents, "
-             "based ONLY on the story summary below, and letter it as clean solid-black text in the open "
-             "central area. Do not invent characters or events beyond the summary."),
+             "based ONLY on the story summary below. Place it as clean, readable text in the upper-center "
+             "area. Do not invent anything beyond the summary."),
             "Story summary: " + summary.strip(),
         ]
     else:
-        lines.append("Do not include a written blurb. Keep the central area open and uncluttered.")
-    lines.append("")
-    if isbn.strip():
-        lines.append("BARCODE AREA: leave a clean, empty white rectangle in the lower third for the barcode, "
-                     "and letter the text '" + isbn.strip() + "' neatly just beneath it. Do not try to draw a "
-                     "real scannable barcode.")
-    else:
-        lines.append("Do not add a barcode, ISBN, or price box.")
+        lines.append("Do not add a blurb. Keep the cover clean and mostly empty.")
+    if char_colors.strip():
+        lines.append("CHARACTER COLORS (keep these exact): " + char_colors.strip() + ".")
     lines += [
         "",
-        "STYLE: " + style_desc + ".",
-        LINE_ART_LOCK,
+        ("BARCODE SPACE (important): leave the entire BOTTOM-RIGHT corner completely empty and clean - a "
+         "plain rectangular area about 2 inches wide by 1.2 inches tall, light and flat, with no artwork, "
+         "no text, and no pattern. This space is reserved for the barcode that KDP prints."),
+        "",
+        "STYLE: " + cover_style_desc + ".",
+        COLOR_COVER_LOCK,
         ("Keep the blurb the most prominent text. Do not repeat the full title lettering from the front "
-         "cover. Do not add extra characters or unrelated text."),
+         "cover. Do not add extra characters or unrelated text. Do not draw a barcode yourself."),
     ]
     return "\n".join(lines)
 
@@ -391,21 +390,34 @@ def build_back_cover_prompt(summary, isbn, style_desc):
 if check_password():
     st.markdown('<div class="kdp-card">', unsafe_allow_html=True)
     st.title("📖 KDPEasy Storybook Prompt Kit")
-    st.caption("Build ready-to-paste ChatGPT prompts for a full black-and-white coloring storybook - "
-               "story pages and covers. This kit writes prompts only; you generate the images in ChatGPT.")
+    st.caption("Build ready-to-paste ChatGPT prompts for a full coloring storybook - black-and-white line "
+               "art interior pages plus full-color covers. This kit writes prompts only; you generate the "
+               "images in ChatGPT.")
 
     with st.expander("How this kit works (read first)"):
         st.markdown(
             "1. **Step 1** builds a prompt that makes ChatGPT write your whole story, split into pages.\n"
             "2. Paste ChatGPT's reply into **Step 2** to get one image prompt per page.\n"
             "3. **Step 3** builds your front and back cover prompts.\n\n"
-            "Every image prompt asks ChatGPT for clean black-and-white line art with the page text drawn "
-            "in, ready to print and color. ChatGPT's text-in-image is good but not perfect - expect to "
-            "regenerate a few pages."
+            "**For the crispest line art, generate each page in a NEW ChatGPT chat** - not the same "
+            "chat you wrote the story in. In one long chat the linework fades page after page. Each "
+            "page prompt already carries the full character description, so the character stays "
+            "consistent across separate chats. For extra safety, upload your finished Page 01 image "
+            "into each new chat along with the prompt and say \"match this character exactly\".\n\n"
+            "Interior pages come out as clean black-and-white line art with the page text drawn in. "
+            "**Covers come out in full color** - upload one finished interior page (front cover) or your "
+            "finished front cover (back cover) so the character matches.\n\n"
+            "The kit does not add page numbers - add those later when you lay the book out as a PDF. "
+            "ChatGPT's text-in-image is good but not perfect; expect to regenerate a few pages."
         )
 
-    style_label = st.selectbox("Illustration style (applies to every step)", list(STYLE_PRESETS))
+    cs1, cs2 = st.columns(2)
+    with cs1:
+        style_label = st.selectbox("Illustration style", list(STYLE_PRESETS))
+    with cs2:
+        shape_label = st.selectbox("Book shape", list(BOOK_SHAPE))
     style_desc = STYLE_PRESETS[style_label]
+    shape_desc = BOOK_SHAPE[shape_label]
 
     tab1, tab2, tab3 = st.tabs(["Step 1 - Story & Character", "Step 2 - Page prompts", "Step 3 - Cover prompts"])
 
@@ -427,12 +439,12 @@ if check_password():
                 st.warning("Enter a story idea first.")
             else:
                 st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2.")
-                st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc), language=None)
+                st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc, shape_label),
+                        language=None)
 
     with tab2:
         pasted = st.text_area("Paste ChatGPT's full story reply here", height=260, key="story_paste")
         comp_label = st.selectbox("Story text position on the page", list(COMPOSITION))
-        pn_mode = st.selectbox("Page numbers", PAGE_NUMBER_MODES)
 
         if st.button("Build page prompts", key="btn_pages"):
             if not pasted.strip():
@@ -452,7 +464,7 @@ if check_password():
                     out = []
                     for num, block in pages:
                         fields = {lbl: extract_field(block, lbl) for lbl in FIELD_LABELS}
-                        p = build_page_prompt(num, fields, bible, comp_label, pn_mode, style_desc)
+                        p = build_page_prompt(num, fields, bible, comp_label, shape_desc, style_desc)
                         out.append((num, p))
                         st.markdown("**Page %02d**" % num)
                         st.code(p, language=None)
@@ -463,10 +475,12 @@ if check_password():
                                        mime="text/plain")
 
     with tab3:
-        summary = st.text_area("Story summary (paste the STORY CONCEPT lines from Step 1's output)",
+        summary = st.text_area("Story summary (paste the STORY CONCEPT text from Step 1's output)",
                                height=90, key="cover_summary")
         title = st.text_input("Book title (leave blank to let ChatGPT name it from the summary)")
         subtitle = st.text_input("Subtitle (optional)")
+        char_colors = st.text_input("Character colors (optional)",
+                                    placeholder="russet-red fur, cream belly, forest-green scarf")
         c4, c5 = st.columns(2)
         with c4:
             author = st.text_input("Author line (optional)", placeholder="Written by Jane Doe")
@@ -478,8 +492,6 @@ if check_password():
             ctype_label = st.selectbox("Cover type", list(COVER_TYPES))
         with c7:
             tpos_label = st.selectbox("Title position", list(TITLE_POS))
-        isbn = st.text_input("ISBN / barcode text for back cover (optional)",
-                             placeholder="ISBN 978-1-234567-89-0")
 
         if st.button("Build cover prompts", key="btn_covers"):
             extras = []
@@ -488,10 +500,10 @@ if check_password():
             if pub.strip():
                 extras.append("'" + pub.strip() + "'")
             extra_lines = ", ".join(extras)
-            front = build_front_cover_prompt(title, subtitle, extra_lines, badge,
-                                             ctype_label, tpos_label, summary, style_desc)
-            back = build_back_cover_prompt(summary, isbn, style_desc)
-            st.markdown("**FRONT COVER prompt** - generate one interior page first, then upload it with this prompt.")
+            front = build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
+                                             summary, char_colors, shape_desc, COVER_STYLE[style_label])
+            back = build_back_cover_prompt(summary, char_colors, COVER_STYLE[style_label], shape_desc)
+            st.markdown("**FRONT COVER prompt** - upload one finished interior page with this prompt.")
             st.code(front, language=None)
             st.markdown("**BACK COVER prompt** - upload your finished front cover with this prompt.")
             st.code(back, language=None)
