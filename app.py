@@ -67,22 +67,18 @@ def check_password() -> bool:
 # ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
 # ----------------------------------------------------------------------------
 
-# Line-art vocabulary - used for the INTERIOR pages.
+# Line-art vocabulary - used for the INTERIOR pages. Two presets, split by audience.
+# Both rely on LINE_ART_LOCK for the print-safe rules; the preset only sets line
+# weight and detail density.
 STYLE_PRESETS = {
-    "Pencil & ink linework": "hand-drawn pencil-and-ink linework with slightly irregular, organic lines and a gentle handmade feel",
-    "Bold simple outlines (ages 4-7)": "bold, thick, very clean outlines with large simple shapes and little small detail, easy for young children to color",
-    "Classic storybook": "classic storybook line art with fine, even pen lines and a timeless, woodcut-inspired look",
-    "Whimsical thick-and-thin": "whimsical line art that mixes thick and thin strokes with playful, flowing lines",
-    "Clean modern minimal": "clean modern minimalist line art with uniform medium-weight lines and lots of open white space",
+    "Kids - bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for young children",
+    "Adults - clean & detailed": "clean outlines of an even, medium weight, with more detail and more elements per scene and smaller areas to color, staying crisp and fully closed throughout; made for older kids and adults",
 }
 
-# Full-color version of the same 5 styles - used for the COVERS.
+# Full-color version of the same 2 presets - used for the COVERS.
 COVER_STYLE = {
-    "Pencil & ink linework": "colored-pencil-and-ink children's book illustration: ink linework with soft colored-pencil shading, warm and handmade",
-    "Bold simple outlines (ages 4-7)": "bold clean outlines filled with bright, cheerful flat color, simple and punchy for young children",
-    "Classic storybook": "classic painted storybook illustration with rich, warm color and gentle texture",
-    "Whimsical thick-and-thin": "whimsical illustration with lively thick-and-thin linework and playful, saturated color",
-    "Clean modern minimal": "clean modern illustration with flat, harmonious color and generous open space",
+    "Kids - bold & simple": "bright, bold, cheerful full-color children's book cover: thick clean outlines, simple punchy shapes, flat lively color",
+    "Adults - clean & detailed": "refined full-color illustrated cover: clean linework, richer detail and depth, harmonious polished color",
 }
 
 BOOK_SHAPE = {
@@ -93,12 +89,12 @@ BOOK_SHAPE = {
 }
 
 LINE_ART_LOCK = (
-    "Pure black and white line art only. Bold, clean, fully closed outlines. "
-    "No shading, no hatching, no grayscale, no gray fill, no color anywhere. "
-    "Solid white background. Lines thick enough for a child to color inside. "
-    "Leave large open areas inside the shapes for coloring. "
-    "Do not crop the main subject. Keep clear white margins on all four sides, nothing touching the edges. "
-    "No frame, no border, no rectangle around the artwork."
+    "Pure black and white line art only. Every line the same solid, even black weight - no "
+    "thick-and-thin variation, no faint or gray lines, no sketchy, broken, or doubled lines. "
+    "All shapes fully closed. No shading, no hatching, no stippling, no grayscale, no gray fill, "
+    "no color anywhere. Solid white background. Lines clean and heavy enough to print sharply "
+    "and to color inside. Do not crop the main subject. Keep clear white margins on all four "
+    "sides, nothing touching the edges. No frame, no border, no rectangle around the artwork."
 )
 
 COLOR_COVER_LOCK = (
@@ -167,7 +163,10 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         "",
         "Write in natural, simple, warm, child-friendly English with short sentences. "
         "Tell one clear story with a beginning, a middle event or discovery, and a satisfying ending. "
-        "Do not over-complicate a simple idea: no extra subplots, no unnecessary characters, no repetition.",
+        "Follow the customer's story idea closely - keep the characters, setting, events, and ending "
+        "they describe. If the idea is only a short line, invent the rest in the same spirit. Either "
+        "way keep the story focused: do not pad it with subplots, characters, or repetition the idea "
+        "does not call for.",
         "",
         "Give the character a fixed visual identity (species, age look, body, face, distinctive features, "
         "clothing, accessories) and keep it identical on every page. Only pose, expression, action, and "
@@ -422,8 +421,17 @@ if check_password():
     tab1, tab2, tab3 = st.tabs(["Step 1 - Story & Character", "Step 2 - Page prompts", "Step 3 - Cover prompts"])
 
     with tab1:
-        idea = st.text_area("Story idea", height=90,
-                            placeholder="A shy little fox who wants to join the forest choir")
+        idea = st.text_area(
+            "Story idea",
+            height=150,
+            placeholder=("One line works, but the more you describe the closer the story stays to what "
+                         "you pictured. Example:\n\n"
+                         "A shy little fox named Finn loves the forest choir but is too afraid to sing. "
+                         "He practices alone by the pond at night. When the choir needs a new voice, "
+                         "his friends encourage him and he finally sings with them."),
+        )
+        st.caption("A short idea is fine. A detailed paragraph - characters, setting, what happens, how "
+                   "it ends - gives you a story much closer to what you had in mind.")
         page_count = st.text_input("Page count (optional)", placeholder="leave blank = let AI choose 10-16")
         st.markdown("**Character (all optional - leave blank for AI to invent)**")
         c1, c2, c3 = st.columns(3)
