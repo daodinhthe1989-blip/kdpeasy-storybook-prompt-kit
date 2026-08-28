@@ -387,9 +387,10 @@ def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
         lines.append("CHARACTER COLORS (keep these exact): " + char_colors.strip() + ".")
     lines += [
         "",
-        ("BARCODE SPACE (important): leave the entire BOTTOM-RIGHT corner completely empty and clean - a "
-         "plain rectangular area about 2 inches wide by 1.2 inches tall, light and flat, with no artwork, "
-         "no text, and no pattern. This space is reserved for the barcode that KDP prints."),
+        ("BARCODE AREA (important): keep the bottom-right corner (about 2 x 1.2 inches) clear of text and "
+         "of any important artwork or focal detail, so a barcode printed there would not cover anything "
+         "that matters. Let the background color and any light texture continue naturally through that "
+         "corner - do NOT carve out a white box or a blank panel."),
         "",
         "STYLE: " + cover_style_desc + ".",
         COLOR_COVER_LOCK,
