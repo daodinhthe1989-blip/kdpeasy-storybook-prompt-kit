@@ -311,12 +311,14 @@ def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, t
     lines = [
         "Full color FRONT COVER for a children's coloring storybook. " + shape_desc,
         "",
-        ("HOW TO USE THIS PROMPT: upload one finished interior page (your black-and-white line art) into "
-         "ChatGPT together with this prompt."),
+        ("HOW TO USE THIS PROMPT: paste it in the SAME ChatGPT chat where you made the interior pages, so "
+         "the character carries over. If you are starting a fresh chat, first upload one finished interior "
+         "page so ChatGPT has the character."),
         "",
-        ("The uploaded page is BLACK AND WHITE line art. Use it ONLY as the reference for the character's "
-         "identity, shapes, proportions, and outfit. Do NOT copy its layout or scene, and do NOT make the "
-         "cover black and white. Redraw the same character in full, rich color for a brand-new cover."),
+        ("Keep the exact same character from the interior pages - same identity, shapes, proportions, and "
+         "outfit. The interior pages are black-and-white line art; do NOT make the cover black and white "
+         "and do NOT copy any page's layout or scene. Redraw the character in full, rich color for a "
+         "brand-new cover."),
         "",
         "COMPOSITION: " + COVER_TYPES[ctype_label],
         "HERO: the story's main character, drawn large and clearly recognizable in a fresh pose.",
@@ -347,7 +349,8 @@ def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
     lines = [
         "Full color BACK COVER for the same children's coloring storybook. " + shape_desc,
         "",
-        ("HOW TO USE THIS PROMPT: upload your finished FRONT COVER into ChatGPT together with this prompt."),
+        ("HOW TO USE THIS PROMPT: paste it in the SAME ChatGPT chat as the front cover, so it carries "
+         "over. If you are starting a fresh chat, first upload the finished front cover."),
         "",
         ("Match the front cover's colors, palette, character, and style exactly. Build a NEW, simple "
          "layout - do not mirror or copy the front cover."),
@@ -395,19 +398,31 @@ if check_password():
 
     with st.expander("How this kit works (read first)"):
         st.markdown(
-            "1. **Step 1** builds a prompt that makes ChatGPT write your whole story, split into pages.\n"
-            "2. Paste ChatGPT's reply into **Step 2** to get one image prompt per page.\n"
-            "3. **Step 3** builds your front and back cover prompts.\n\n"
-            "**For the crispest line art, generate each page in a NEW ChatGPT chat** - not the same "
-            "chat you wrote the story in. In one long chat the linework fades page after page. Each "
-            "page prompt already carries the full character description, so the character stays "
-            "consistent across separate chats. For extra safety, upload your finished Page 01 image "
-            "into each new chat along with the prompt and say \"match this character exactly\".\n\n"
-            "Interior pages come out as clean black-and-white line art with the page text drawn in. "
-            "**Covers come out in full color** - upload one finished interior page (front cover) or your "
-            "finished front cover (back cover) so the character matches.\n\n"
-            "The kit does not add page numbers - add those later when you lay the book out as a PDF. "
-            "ChatGPT's text-in-image is good but not perfect; expect to regenerate a few pages."
+            "**What this kit does.** It writes the ChatGPT prompts for a whole coloring storybook - "
+            "the story, one illustration prompt per page, and both covers. You run those prompts in "
+            "ChatGPT to make the pictures. The kit does not create images itself.\n\n"
+            "**Step by step**\n\n"
+            "1. **Step 1 - Story.** Type your story idea and press the button. Copy the prompt it "
+            "gives you and paste it into ChatGPT. ChatGPT writes the full story and splits it into "
+            "pages. Keep this as your **story chat**.\n"
+            "2. **Step 2 - Page prompts.** Copy ChatGPT's whole reply and paste it back into Step 2. "
+            "The kit gives you one image prompt per page.\n"
+            "3. **Make the pages.** Open a **new, separate ChatGPT chat** - your **image chat**. Paste "
+            "the Page 1 prompt, let ChatGPT draw it, then paste Page 2, and so on. Do every page in "
+            "this one image chat so the character looks the same on every page.\n"
+            "4. **Step 3 - Covers.** Fill in the title and options, press the button, then paste the "
+            "front-cover prompt and the back-cover prompt into that **same image chat**. The "
+            "character is already there, so the covers match your pages automatically.\n"
+            "5. **Build the book.** Now you have all the images. Combine them into a print-ready PDF "
+            "in a separate layout tool - that is also where you add page numbers.\n\n"
+            "**Good to know**\n\n"
+            "- Keep the story chat and the image chat separate. Making images in the same chat that "
+            "wrote the story causes the linework to fade from page to page.\n"
+            "- Interior pages come out as black-and-white line art with the page text drawn in. "
+            "Covers come out in full color.\n"
+            "- If your image chat gets very long and you must start a fresh one, upload one finished "
+            "page (or the finished front cover) into the new chat so ChatGPT still has the character.\n"
+            "- ChatGPT's text-in-image is good but not perfect - expect to regenerate a few pages."
         )
 
     cs1, cs2 = st.columns(2)
