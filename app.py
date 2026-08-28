@@ -4,39 +4,35 @@ from datetime import date
 
 st.set_page_config(page_title="KDPEasy Storybook Prompt Kit", page_icon="📖", layout="centered")
 
-# Password -> expiry date, or None for permanent access (paying customers).
-PASSWORD_EXPIRY = {
-    "KDPSTORY2026": None,
+# ----------------------------------------------------------------------------
+# Access. Hand each buyer the password that matches what they bought:
+#   FE only ............... KDPSTORY2026
+#   FE + OTO2 (Pro) ...... KDPSTORYPRO2026
+#   FE + OTO3 (Series) ... KDPSTORYSERIES2026
+#   FE + OTO2 + OTO3 ..... KDPSTORYMAX2026
+# "expires": None = permanent; or a datetime.date for a time-limited trial.
+# ----------------------------------------------------------------------------
+PASSWORDS = {
+    "KDPSTORY2026":       {"pro": False, "series": False, "expires": None},
+    "KDPSTORYPRO2026":    {"pro": True,  "series": False, "expires": None},
+    "KDPSTORYSERIES2026": {"pro": False, "series": True,  "expires": None},
+    "KDPSTORYMAX2026":    {"pro": True,  "series": True,  "expires": None},
 }
 
 CUSTOM_CSS = """
 <style>
-:root {
-    color-scheme: light;
-}
-.stApp {
-    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%);
-}
+:root { color-scheme: light; }
+.stApp { background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%); }
 .kdp-card {
-    background: white;
-    border-radius: 16px;
-    padding: 2rem 2rem 1.5rem;
-    box-shadow: 0 4px 24px rgba(79, 70, 229, 0.08);
-    margin-bottom: 1.5rem;
+    background: white; border-radius: 16px; padding: 2rem 2rem 1.5rem;
+    box-shadow: 0 4px 24px rgba(79, 70, 229, 0.08); margin-bottom: 1.5rem;
 }
 h1, h2, h3 { color: #4f46e5; }
 .stButton>button, .stDownloadButton>button {
-    background-color: #10b981;
-    color: white;
-    border-radius: 10px;
-    border: none;
-    padding: 0.6rem 1.4rem;
-    font-weight: 600;
+    background-color: #10b981; color: white; border-radius: 10px; border: none;
+    padding: 0.6rem 1.4rem; font-weight: 600;
 }
-.stButton>button:hover, .stDownloadButton>button:hover {
-    background-color: #059669;
-    color: white;
-}
+.stButton>button:hover, .stDownloadButton>button:hover { background-color: #059669; color: white; }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -49,17 +45,22 @@ def check_password() -> bool:
     st.title("📖 KDPEasy Storybook Prompt Kit")
     pw = st.text_input("Enter access password", type="password")
     if st.button("Unlock"):
-        if pw in PASSWORD_EXPIRY:
-            expiry = PASSWORD_EXPIRY[pw]
-            if expiry is None or date.today() <= expiry:
-                st.session_state["authed"] = True
-                st.rerun()
-            else:
-                st.error("This trial password has expired. Please reach out to get full access.")
-        else:
+        tier = PASSWORDS.get(pw)
+        if tier is None:
             st.error("Incorrect password.")
+        elif tier["expires"] is not None and date.today() > tier["expires"]:
+            st.error("This trial password has expired. Please reach out to get full access.")
+        else:
+            st.session_state["authed"] = True
+            st.session_state["tier"] = {"pro": tier["pro"], "series": tier["series"]}
+            st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     return False
+
+
+def has(feature: str) -> bool:
+    """feature is 'pro' (OTO2) or 'series' (OTO3)."""
+    return bool(st.session_state.get("tier", {}).get(feature))
 
 
 # ----------------------------------------------------------------------------
@@ -67,25 +68,41 @@ def check_password() -> bool:
 # ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
 # ----------------------------------------------------------------------------
 
-# Line-art vocabulary - used for the INTERIOR pages. Two presets, split by audience.
-# Both rely on LINE_ART_LOCK for the print-safe rules; the preset only sets line
-# weight and detail density.
-STYLE_PRESETS = {
+# INTERIOR line-art styles. FE = 2 presets. Pro adds 3 more B&W presets.
+STYLE_BW_FE = {
     "Kids - bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for young children",
     "Adults - clean & detailed": "clean outlines of an even, medium weight, with more detail and more elements per scene and smaller areas to color, staying crisp and fully closed throughout; made for older kids and adults",
 }
-
-# Full-color version of the same 2 presets - used for the COVERS.
-COVER_STYLE = {
-    "Kids - bold & simple": "bright, bold, cheerful full-color children's book cover: thick clean outlines, simple punchy shapes, flat lively color",
-    "Adults - clean & detailed": "refined full-color illustrated cover: clean linework, richer detail and depth, harmonious polished color",
+STYLE_BW_PRO = {
+    "Fine ink detail": "fine, even ink linework with rich detail, delicate elements, and small areas to color; for confident colorists",
+    "Chunky marker": "very chunky, rounded marker-style outlines, huge simple shapes, almost no small detail; for the youngest hands",
+    "Storybook classic": "even classic pen linework with a calm, traditional storybook feel and balanced detail",
+}
+# INTERIOR full-color styles (Pro only - reached by switching Interior mode to color).
+STYLE_COLOR = {
+    "Kids - bold & simple": "bright, bold, cheerful full-color art: thick clean outlines, simple punchy shapes, flat lively color",
+    "Adults - clean & detailed": "refined full-color illustration: clean linework, richer detail and depth, harmonious color",
+    "Soft watercolor": "gentle watercolor storybook illustration with soft edges and a warm, light palette",
+    "Colored pencil": "colored-pencil illustration with visible strokes, cozy and handmade",
+    "Flat vector": "clean flat vector illustration with bold shapes and a bright, limited palette",
+    "Papercut collage": "layered papercut and collage look with simple shapes and a soft paper texture",
+    "Vintage midcentury": "vintage mid-century picture-book style with textured flat color and a muted retro palette",
+    "Kawaii chibi": "cute kawaii chibi style with rounded shapes, big friendly eyes, and soft pastel color",
 }
 
-BOOK_SHAPE = {
+# Book size. FE = 3 generic shapes. Pro adds exact KDP trims (with the Canva doc size).
+BOOK_SHAPE_FE = {
     "Portrait (tall)": ("Portrait orientation, clearly taller than wide (about 2:3). Keep extra open "
-                        "white margin at the top and bottom - the final printed page may be a different height."),
-    "Square (1:1)": "Square 1:1 composition, equal width and height.",
-    "Landscape (wide)": "Landscape orientation, clearly wider than tall (about 3:2).",
+                        "white margin at the top and bottom - the final printed page may be a different height.", ""),
+    "Square (1:1)": ("Square 1:1 composition, equal width and height.", ""),
+    "Landscape (wide)": ("Landscape orientation, clearly wider than tall (about 3:2).", ""),
+}
+BOOK_SHAPE_PRO = {
+    "KDP 8.5 x 8.5 in (square)": ("Square 1:1 composition, equal width and height.", "Canva document: 8.75 x 8.75 in"),
+    "KDP 8 x 8 in (square)": ("Square 1:1 composition, equal width and height.", "Canva document: 8.25 x 8.25 in"),
+    "KDP 6 x 9 in (portrait)": ("Portrait orientation, taller than wide, about 2:3.", "Canva document: 6.25 x 9.25 in"),
+    "KDP 8 x 10 in (portrait)": ("Portrait orientation, taller than wide, about 4:5.", "Canva document: 8.25 x 10.25 in"),
+    "KDP 8.5 x 11 in (portrait)": ("Portrait orientation, taller than wide, about 3:4.", "Canva document: 8.75 x 11.25 in"),
 }
 
 LINE_ART_LOCK = (
@@ -95,6 +112,13 @@ LINE_ART_LOCK = (
     "no color anywhere. Solid white background. Lines clean and heavy enough to print sharply "
     "and to color inside. Do not crop the main subject. Keep clear white margins on all four "
     "sides, nothing touching the edges. No frame, no border, no rectangle around the artwork."
+)
+
+COLOR_INTERIOR_LOCK = (
+    "Full color children's storybook illustration - bright, warm, and appealing, with a harmonious "
+    "palette and gentle shading. Clean, solid shapes. Do not crop the main subject. Keep clear "
+    "margins on all four sides, nothing touching the edges. No frame, no border, no rectangle "
+    "around the artwork."
 )
 
 COLOR_COVER_LOCK = (
@@ -127,12 +151,21 @@ TITLE_POS = {
     "BOTTOM": "across the bottom of the cover",
 }
 
+MATTER_PAGES = {
+    "Title page": "Center the book title '{title}' large, and beneath it in smaller text 'Written and illustrated by {author}'. One small, simple motif from the story is fine. No other text.",
+    "Copyright page": "Small, plain, centered text with lots of white space: 'Text and illustrations copyright (c) {year} {author}. All rights reserved. No part of this book may be reproduced without written permission.' No artwork.",
+    "Dedication page": "Center a short dedication in gentle text: '{dedication}'. Lots of white space, at most one tiny motif.",
+    "This book belongs to": "Center the words 'This book belongs to' with a wide open line beneath it for a child to write their name. One small, simple decorative motif is fine. No other text.",
+    "About the author": "A simple page headed 'About the Author' with the short text: '{about}'. Leave a clear space for a small round author portrait. Keep it plain.",
+}
+
 
 # ----------------------------------------------------------------------------
 # Step 1 - Story Engine prompt
 # ----------------------------------------------------------------------------
 
-def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, shape_label):
+def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, shape_label,
+                       color_mode=False, series_bible=""):
     pc = page_count_raw.strip()
     if pc.isdigit():
         n = max(20, min(40, int(pc)))
@@ -141,6 +174,33 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         pc_line = ("Choose a good length, normally 24 to 32 story pages. Never fewer than 20 and "
                    "never more than 40.")
 
+    if color_mode:
+        medium = "Every page will be drawn as a full-color storybook illustration."
+        dir_note = ("what to draw, including colors, light, and mood")
+        style_word = "art"
+    else:
+        medium = "Every page will be drawn as black-and-white line art for kids to color."
+        dir_note = ("what to draw, described so it works as open black-and-white coloring line art - "
+                    "no color words, no shading words")
+        style_word = "drawing"
+
+    lines = [
+        "You are a children's storybook author and illustration director.",
+        "Turn the story idea below into a complete, production-ready children's storybook. " + medium,
+        "",
+    ]
+    if series_bible.strip():
+        lines += [
+            "THIS IS THE NEXT BOOK IN AN EXISTING SERIES.",
+            "Reuse the EXACT character and world in the Character Bible below, completely unchanged.",
+            "Tell a brand-new, complete, standalone story - do not retell or continue the previous plot.",
+            "",
+            "=== CHARACTER BIBLE START ===",
+            series_bible.strip(),
+            "=== CHARACTER BIBLE END ===",
+            "",
+        ]
+
     char_bits = []
     if ctype.strip():
         char_bits.append("type/species: " + ctype.strip())
@@ -148,16 +208,14 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         char_bits.append("age: " + cage.strip())
     if coutfit.strip():
         char_bits.append("outfit: " + coutfit.strip())
-    if char_bits:
+    if series_bible.strip():
+        char_line = "Use the character from the Character Bible above, unchanged."
+    elif char_bits:
         char_line = "Use this main character and fill in the rest yourself: " + "; ".join(char_bits) + "."
     else:
         char_line = "Create a fitting main character yourself."
 
-    lines = [
-        "You are a children's coloring storybook author and illustration director.",
-        "Turn the story idea below into a complete, production-ready children's COLORING storybook. "
-        "Every page will be drawn as black-and-white line art for kids to color.",
-        "",
+    lines += [
         "STORY IDEA: " + idea.strip(),
         "PAGES: " + pc_line,
         "CHARACTER: " + char_line,
@@ -188,7 +246,8 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         "1) STORY CONCEPT - 2 to 3 sentences.",
         "2) The Character Bible, wrapped exactly like this:",
         "=== CHARACTER BIBLE START ===",
-        "<all the fixed character details>",
+        ("<repeat the Character Bible provided above, unchanged>" if series_bible.strip()
+         else "<all the fixed character details>"),
         "=== CHARACTER BIBLE END ===",
         "3) TOTAL PAGE COUNT - a single number.",
         "4) STORY ARC - 3 to 5 short lines.",
@@ -198,15 +257,14 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         "STORY TEXT: <the 1-2 short sentences that will be printed on this page>",
         "STORY SCENE: <the single central story moment on this page>",
         "ILLUSTRATION TYPE: <DEFAULT for a quiet establishing page, or THEME for a key event page>",
-        "ILLUSTRATION DIRECTION: <what to draw, described so it works as open black-and-white coloring "
-        "line art - no color words, no shading words>",
+        "ILLUSTRATION DIRECTION: <" + dir_note + ">",
         "=== PAGE 02 ===",
         "STORY TEXT: ...",
         "(continue for every page, page numbers always two digits: 01, 02, 03 ...)",
         "",
         "Keep ILLUSTRATION DIRECTION consistent with the story - never introduce objects, places, or "
         "characters the story does not mention.",
-        "Planned drawing style for later, keep the directions compatible with it: " + style_desc + ".",
+        "Planned " + style_word + " style for later, keep the directions compatible with it: " + style_desc + ".",
         "The finished art will be " + shape_label + " - keep each scene composable in that shape.",
     ]
     return "\n".join(lines)
@@ -216,27 +274,20 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
 # Step 2 - parse the pasted story, build one image prompt per page
 # ----------------------------------------------------------------------------
 
-# Tolerant page-header match: "=== PAGE 01 ===", "Page 1:", "### PAGE 3 ###",
-# "**PAGE 02**", "-- page 4 --", etc.
 PAGE_SPLIT_RE = re.compile(
     r'^[ \t]*[=#*_\-]*[ \t]*PAGE[ \t]+0*(\d+)[ \t]*[=#*_\-]*[ \t]*:?[ \t]*$',
     re.IGNORECASE | re.MULTILINE,
 )
-
 _NEXT_FIELD = r'(?=\n\s*(?:' + '|'.join(l.replace(' ', r'\s+') for l in FIELD_LABELS) + r')\s*:|\Z)'
 
 
 def parse_character_bible(text):
-    m = re.search(
-        r'CHARACTER BIBLE START\s*=*\s*(.*?)\s*=*\s*CHARACTER BIBLE END',
-        text, re.IGNORECASE | re.DOTALL,
-    )
+    m = re.search(r'CHARACTER BIBLE START\s*=*\s*(.*?)\s*=*\s*CHARACTER BIBLE END',
+                  text, re.IGNORECASE | re.DOTALL)
     if m:
         return m.group(1).strip()
-    m = re.search(
-        r'CHARACTER BIBLE\s*:?\s*\n(.*?)(?:\n\s*\n|\nTOTAL PAGE|\nSTORY ARC|\n=* ?PAGE)',
-        text, re.IGNORECASE | re.DOTALL,
-    )
+    m = re.search(r'CHARACTER BIBLE\s*:?\s*\n(.*?)(?:\n\s*\n|\nTOTAL PAGE|\nSTORY ARC|\n=* ?PAGE)',
+                  text, re.IGNORECASE | re.DOTALL)
     if m:
         return m.group(1).strip()
     return ""
@@ -249,22 +300,18 @@ def split_pages(text):
         num = int(m.group(1))
         start = m.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        # If a page number appears twice (e.g. ChatGPT restarted it after a
-        # "(continue)" break), the later, more complete block wins.
         by_num[num] = text[start:end].strip()
     return [(n, by_num[n]) for n in sorted(by_num)]
 
 
 def extract_field(block, name):
-    pat = re.compile(
-        name.replace(' ', r'\s+') + r'\s*:?\s*(.*?)' + _NEXT_FIELD,
-        re.IGNORECASE | re.DOTALL,
-    )
+    pat = re.compile(name.replace(' ', r'\s+') + r'\s*:?\s*(.*?)' + _NEXT_FIELD,
+                     re.IGNORECASE | re.DOTALL)
     m = pat.search(block)
     return m.group(1).strip() if m else ""
 
 
-def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, style_desc):
+def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, style_desc, color_mode=False):
     text_area, illo_area = COMPOSITION[comp_label]
     story_text = fields.get("STORY TEXT") or "(use the story text for this page from your pasted story)"
     story_scene = fields.get("STORY SCENE") or ""
@@ -279,15 +326,25 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
     bible = char_bible.strip() or ("(match the character exactly to your other pages: same species, age, "
                                    "face, clothing, and accessories)")
 
+    if color_mode:
+        head = "Full color illustration for a single interior page of a children's storybook. " + shape_desc
+        text_line = ("Print this exact story text on the page in a clean, simple, child-friendly serif, "
+                     "dark and easy to read, generously spaced: '" + story_text + "'")
+        lock = COLOR_INTERIOR_LOCK
+    else:
+        head = "Black and white line art for a single interior page of a children's coloring storybook. " + shape_desc
+        text_line = ("Print this exact story text on the page in a clean, simple, child-friendly serif, "
+                     "solid black, generously spaced and easy to read: '" + story_text + "'")
+        lock = LINE_ART_LOCK
+
     lines = [
-        "Black and white line art for a single interior page of a children's coloring storybook. " + shape_desc,
+        head,
         "",
         "CHARACTER (must look identical on every page):",
         bible,
         "",
         "PAGE LAYOUT:",
-        ("Print this exact story text on the page in a clean, simple, child-friendly serif, solid black, "
-         "generously spaced and easy to read: '" + story_text + "'"),
+        text_line,
         ("Place the story text across the " + text_area + ". Place the illustration in the " + illo_area +
          ". Let the illustration fade softly into the open page - no dividing line, no box or rectangle "
          "around the illustration, no full-bleed."),
@@ -298,7 +355,7 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
         type_note,
         "",
         "STYLE: " + style_desc + ".",
-        LINE_ART_LOCK,
+        lock,
         ("Do not add a page number. Do not add any words, title, caption, speech bubble, label, or "
          "signature other than the story text above. Do not add characters or objects that are not part "
          "of this page's story."),
@@ -307,8 +364,13 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
 
 
 # ----------------------------------------------------------------------------
-# Step 3 - cover prompts (FULL COLOR)
+# Step 3 - cover prompts (always FULL COLOR)
 # ----------------------------------------------------------------------------
+
+def cover_style_desc_for(label):
+    return (STYLE_COLOR.get(label)
+            or "bright, appealing, professionally finished full-color children's book cover illustration")
+
 
 def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
                              summary, char_colors, shape_desc, cover_style_desc):
@@ -323,15 +385,14 @@ def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, t
                       "stands out clearly against the background. Place it " + TITLE_POS[tpos_label] + ".")
 
     lines = [
-        "Full color FRONT COVER for a children's coloring storybook. " + shape_desc,
+        "Full color FRONT COVER for a children's storybook. " + shape_desc,
         "",
         ("HOW TO USE THIS PROMPT: paste it in the SAME ChatGPT chat where you made the interior pages, so "
          "the character carries over. If you are starting a fresh chat, first upload one finished interior "
          "page so ChatGPT has the character."),
         "",
         ("Keep the exact same character from the interior pages - same identity, shapes, proportions, and "
-         "outfit. The interior pages are black-and-white line art; do NOT make the cover black and white "
-         "and do NOT copy any page's layout or scene. Redraw the character in full, rich color for a "
+         "outfit. Do NOT copy any page's layout or scene. Draw the character in full, rich color for a "
          "brand-new cover."),
         "",
         "COMPOSITION: " + COVER_TYPES[ctype_label],
@@ -361,7 +422,7 @@ def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, t
 
 def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
     lines = [
-        "Full color BACK COVER for the same children's coloring storybook. " + shape_desc,
+        "Full color BACK COVER for the same children's storybook. " + shape_desc,
         "",
         ("HOW TO USE THIS PROMPT: paste it in the SAME ChatGPT chat as the front cover, so it carries "
          "over. If you are starting a fresh chat, first upload the finished front cover."),
@@ -401,72 +462,136 @@ def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
 
 
 # ----------------------------------------------------------------------------
+# Pro & Series tools (OTO 2 / OTO 3)
+# ----------------------------------------------------------------------------
+
+def build_char_sheet_prompt(bible, style_desc, color_mode):
+    lock = COLOR_INTERIOR_LOCK if color_mode else LINE_ART_LOCK
+    kind = "full color" if color_mode else "black and white line art"
+    return "\n".join([
+        "Create a single CHARACTER REFERENCE SHEET (%s) for the character described below." % kind,
+        "On one page, plain white background, evenly spaced, no scene or background:",
+        "- a front view, a three-quarter view, a side view, and a back view, standing",
+        "- a row of five head expressions: happy, sad, surprised, scared, sleepy",
+        "Keep the identity, proportions, clothing, and features identical in every view.",
+        "Do not add labels, text, arrows, or a border.",
+        "",
+        "STYLE: " + style_desc + ".",
+        lock,
+        "",
+        "CHARACTER:",
+        bible.strip() or "(paste your Character Bible here)",
+    ])
+
+
+def build_matter_prompt(page_name, ctx, style_desc, color_mode):
+    lock = COLOR_INTERIOR_LOCK if color_mode else LINE_ART_LOCK
+    kind = "full color" if color_mode else "black and white line art"
+    body = MATTER_PAGES[page_name].format(**ctx)
+    return "\n".join([
+        "Design a %s %s for a children's storybook, matching the book's shape." % (kind, page_name.upper()),
+        body,
+        "",
+        "STYLE: " + style_desc + ".",
+        lock,
+    ])
+
+
+# ----------------------------------------------------------------------------
 # UI
 # ----------------------------------------------------------------------------
 
 if check_password():
     st.markdown('<div class="kdp-card">', unsafe_allow_html=True)
     st.title("📖 KDPEasy Storybook Prompt Kit")
-    st.caption("Build ready-to-paste ChatGPT prompts for a full coloring storybook - black-and-white line "
-               "art interior pages plus full-color covers. This kit writes prompts only; you generate the "
-               "images in ChatGPT.")
+    st.caption("Build ready-to-paste ChatGPT prompts for a full storybook - interior pages plus covers. "
+               "This kit writes prompts only; you generate the images in ChatGPT.")
+
+    badges = []
+    if has("pro"):
+        badges.append("Pro / Color unlocked")
+    if has("series"):
+        badges.append("Series unlocked")
+    if badges:
+        st.success("  |  ".join(badges))
 
     with st.expander("How this kit works (read first)"):
         st.markdown(
-            "**What this kit does.** It writes the ChatGPT prompts for a whole coloring storybook - "
-            "the story, one illustration prompt per page, and both covers. You run those prompts in "
-            "ChatGPT to make the pictures. The kit does not create images itself.\n\n"
+            "**What this kit does.** It writes the ChatGPT prompts for a whole storybook - the story, "
+            "one illustration prompt per page, and both covers. You run those prompts in ChatGPT to "
+            "make the pictures. The kit does not create images itself.\n\n"
             "**Step by step**\n\n"
-            "1. **Step 1 - Story.** Type your story idea and press the button. Copy the prompt it "
-            "gives you and paste it into ChatGPT. ChatGPT writes the full story and splits it into "
-            "pages. Keep this as your **story chat**.\n"
-            "2. **Step 2 - Page prompts.** Copy ChatGPT's whole reply and paste it back into Step 2. "
-            "The kit gives you one image prompt per page.\n"
+            "1. **Step 1 - Story.** Type your idea, press the button, paste the prompt into ChatGPT. "
+            "ChatGPT writes the full story and splits it into pages. Keep this as your **story chat**.\n"
+            "2. **Step 2 - Page prompts.** Paste ChatGPT's whole reply back in. You get one image "
+            "prompt per page.\n"
             "3. **Make the pages.** Open a **new, separate ChatGPT chat** - your **image chat**. Paste "
-            "the Page 1 prompt, let ChatGPT draw it, then paste Page 2, and so on. Do every page in "
-            "this one image chat so the character looks the same on every page.\n"
-            "4. **Step 3 - Covers.** Fill in the title and options, press the button, then paste the "
-            "front-cover prompt and the back-cover prompt into that **same image chat**. The "
-            "character is already there, so the covers match your pages automatically.\n"
-            "5. **Build the book.** Now you have all the images. Combine them into a print-ready PDF "
-            "in a separate layout tool - that is also where you add page numbers.\n\n"
+            "Page 1, let it draw, then Page 2, and so on, all in this one chat.\n"
+            "4. **Step 3 - Covers.** Fill the title and options, then paste the cover prompts into that "
+            "same image chat.\n"
+            "5. **Build the book.** Combine the images into a print-ready PDF in a separate layout "
+            "tool - that is also where page numbers get added.\n\n"
             "**Good to know**\n\n"
-            "- Keep the story chat and the image chat separate. Making images in the same chat that "
-            "wrote the story causes the linework to fade from page to page.\n"
-            "- Interior pages come out as black-and-white line art with the page text drawn in. "
-            "Covers come out in full color.\n"
-            "- If your image chat gets very long and you must start a fresh one, upload one finished "
-            "page (or the finished front cover) into the new chat so ChatGPT still has the character.\n"
+            "- Keep the story chat and the image chat separate, or the linework fades page to page.\n"
+            "- Black-and-white interiors have the story text drawn in. Covers are always full color.\n"
+            "- If an image chat gets very long, start a fresh one and upload a finished page first.\n"
             "- ChatGPT's text-in-image is good but not perfect - expect to regenerate a few pages."
         )
 
-    cs1, cs2 = st.columns(2)
-    with cs1:
-        style_label = st.selectbox("Illustration style", list(STYLE_PRESETS))
-    with cs2:
-        shape_label = st.selectbox("Book shape", list(BOOK_SHAPE))
-    style_desc = STYLE_PRESETS[style_label]
-    shape_desc = BOOK_SHAPE[shape_label]
+    # ---- global choices ----
+    m1, m2 = st.columns(2)
+    with m1:
+        color_choice = st.radio(
+            "Interior style",
+            ["Black & white line art (coloring book)", "Full color storybook"],
+            disabled=not has("pro"),
+        )
+        if not has("pro"):
+            st.caption("Full-color interiors unlock with the Pro upgrade (OTO 2).")
+    color_mode = has("pro") and color_choice.startswith("Full color")
 
-    tab1, tab2, tab3 = st.tabs(["Step 1 - Story & Character", "Step 2 - Page prompts", "Step 3 - Cover prompts"])
+    if color_mode:
+        style_options = list(STYLE_COLOR)
+        style_lookup = STYLE_COLOR
+    else:
+        style_options = list(STYLE_BW_FE) + (list(STYLE_BW_PRO) if has("pro") else [])
+        style_lookup = {**STYLE_BW_FE, **STYLE_BW_PRO}
 
+    with m2:
+        style_label = st.selectbox("Illustration style", style_options)
+        if not has("pro"):
+            st.caption("More styles + full color in the Pro upgrade (OTO 2).")
+    style_desc = style_lookup[style_label]
+
+    shape_options = list(BOOK_SHAPE_FE) + (list(BOOK_SHAPE_PRO) if has("pro") else [])
+    shape_lookup = {**BOOK_SHAPE_FE, **BOOK_SHAPE_PRO}
+    shape_label_full = st.selectbox("Book size", shape_options)
+    shape_desc, shape_note = shape_lookup[shape_label_full]
+    if shape_note:
+        st.caption(shape_note)
+    if not has("pro"):
+        st.caption("Exact KDP trim sizes unlock with the Pro upgrade (OTO 2).")
+    cover_style = cover_style_desc_for(style_label) if color_mode else STYLE_COLOR.get(style_label, cover_style_desc_for(style_label))
+
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Step 1 - Story", "Step 2 - Page prompts", "Step 3 - Covers", "Pro & Series tools"])
+
+    # ---------------- Step 1 ----------------
     with tab1:
         idea = st.text_area(
-            "Story idea",
-            height=150,
+            "Story idea", height=150,
             placeholder=("One line works, but the more you describe the closer the story stays to what "
                          "you pictured. Example:\n\n"
                          "A shy little fox named Finn loves the forest choir but is too afraid to sing. "
                          "He practices alone by the pond at night. When the choir needs a new voice, "
                          "his friends encourage him and he finally sings with them."),
         )
-        st.caption("A short idea is fine. A detailed paragraph - characters, setting, what happens, how "
-                   "it ends - gives you a story much closer to what you had in mind.")
+        st.caption("A short idea is fine. A detailed paragraph gives you a story much closer to what "
+                   "you had in mind.")
         page_count = st.text_input("Page count (optional)",
                                    placeholder="blank = AI picks ~24-32; any number from 20 to 40")
-        st.caption("Books are always 20 to 40 pages. Stretching a thin idea over many pages makes it "
-                   "weaker, so match the count to the idea. On longer books ChatGPT may stop partway "
-                   "and end with \"(continue)\" - just reply \"continue\" in the chat to get the rest.")
+        st.caption("Books are always 20 to 40 pages. On longer books ChatGPT may stop partway and end "
+                   "with \"(continue)\" - just reply \"continue\" in the chat.")
         st.markdown("**Character (all optional - leave blank for AI to invent)**")
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -484,9 +609,10 @@ if check_password():
                 if pcs.isdigit() and not (20 <= int(pcs) <= 40):
                     st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
                 st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2.")
-                st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc, shape_label),
-                        language=None)
+                st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc,
+                                           shape_label_full, color_mode), language=None)
 
+    # ---------------- Step 2 ----------------
     with tab2:
         pasted = st.text_area("Paste ChatGPT's full story reply here", height=260, key="story_paste")
         comp_label = st.selectbox("Story text position on the page", list(COMPOSITION))
@@ -498,27 +624,27 @@ if check_password():
                 bible = parse_character_bible(pasted)
                 pages = split_pages(pasted)
                 if not pages:
-                    st.error("Could not find any pages. Make sure you pasted the whole reply, including the "
-                             "lines that look like '=== PAGE 01 ==='. If ChatGPT used a different format, "
-                             "re-run the Step 1 prompt.")
+                    st.error("Could not find any pages. Make sure you pasted the whole reply, including "
+                             "the lines that look like '=== PAGE 01 ==='. If ChatGPT used a different "
+                             "format, re-run the Step 1 prompt.")
                 else:
                     if not bible:
-                        st.warning("No Character Bible block found in the paste - prompts will still work, "
-                                   "but double-check character consistency.")
+                        st.warning("No Character Bible block found in the paste - prompts will still "
+                                   "work, but double-check character consistency.")
                     st.success("Built %d page prompt(s)." % len(pages))
                     out = []
                     for num, block in pages:
                         fields = {lbl: extract_field(block, lbl) for lbl in FIELD_LABELS}
-                        p = build_page_prompt(num, fields, bible, comp_label, shape_desc, style_desc)
+                        p = build_page_prompt(num, fields, bible, comp_label, shape_desc, style_desc, color_mode)
                         out.append((num, p))
                         st.markdown("**Page %02d**" % num)
                         st.code(p, language=None)
                     all_text = "\n\n\n".join("PAGE %02d\n%s" % (n, p) for n, p in out)
                     st.download_button("Download all page prompts (.txt)",
                                        data=all_text.encode("utf-8"),
-                                       file_name="storybook_page_prompts.txt",
-                                       mime="text/plain")
+                                       file_name="storybook_page_prompts.txt", mime="text/plain")
 
+    # ---------------- Step 3 ----------------
     with tab3:
         summary = st.text_area("Story summary (paste the STORY CONCEPT text from Step 1's output)",
                                height=90, key="cover_summary")
@@ -546,16 +672,108 @@ if check_password():
                 extras.append("'" + pub.strip() + "'")
             extra_lines = ", ".join(extras)
             front = build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
-                                             summary, char_colors, shape_desc, COVER_STYLE[style_label])
-            back = build_back_cover_prompt(summary, char_colors, COVER_STYLE[style_label], shape_desc)
-            st.markdown("**FRONT COVER prompt** - upload one finished interior page with this prompt.")
+                                             summary, char_colors, shape_desc, cover_style)
+            back = build_back_cover_prompt(summary, char_colors, cover_style, shape_desc)
+            st.markdown("**FRONT COVER prompt**")
             st.code(front, language=None)
-            st.markdown("**BACK COVER prompt** - upload your finished front cover with this prompt.")
+            st.markdown("**BACK COVER prompt**")
             st.code(back, language=None)
             both = "FRONT COVER\n" + front + "\n\n\nBACK COVER\n" + back
-            st.download_button("Download both cover prompts (.txt)",
-                               data=both.encode("utf-8"),
-                               file_name="storybook_cover_prompts.txt",
-                               mime="text/plain")
+            st.download_button("Download both cover prompts (.txt)", data=both.encode("utf-8"),
+                               file_name="storybook_cover_prompts.txt", mime="text/plain")
+
+    # ---------------- Pro & Series tools ----------------
+    with tab4:
+        st.markdown("### Character reference sheet  ")
+        st.caption("Generate one sheet of your character (front / side / back + expressions) to anchor "
+                   "every page. Make this first, then upload it into your image chat.")
+        if not has("pro"):
+            st.info("🔒 Unlock with the Pro upgrade (OTO 2).")
+        cs_bible = st.text_area("Paste your Character Bible", height=150, key="cs_bible",
+                                disabled=not has("pro"))
+        if st.button("Build character-sheet prompt", key="btn_cs", disabled=not has("pro")):
+            if not cs_bible.strip():
+                st.warning("Paste your Character Bible first.")
+            else:
+                st.code(build_char_sheet_prompt(cs_bible, style_desc, color_mode), language=None)
+
+        st.divider()
+        st.markdown("### Front & back matter pages")
+        st.caption("Title page, copyright, dedication, 'This book belongs to', about the author.")
+        if not has("pro"):
+            st.info("🔒 Unlock with the Pro upgrade (OTO 2).")
+        mm1, mm2, mm3 = st.columns(3)
+        with mm1:
+            mm_title = st.text_input("Book title", key="mm_title", disabled=not has("pro"))
+        with mm2:
+            mm_author = st.text_input("Author name", key="mm_author", disabled=not has("pro"))
+        with mm3:
+            mm_year = st.text_input("Year", key="mm_year", value=str(date.today().year), disabled=not has("pro"))
+        mm_ded = st.text_input("Dedication text", key="mm_ded", placeholder="For every child who loves to color",
+                               disabled=not has("pro"))
+        mm_about = st.text_input("About-the-author text", key="mm_about", disabled=not has("pro"))
+        mm_pick = st.multiselect("Pages to build", list(MATTER_PAGES), default=["Title page", "Copyright page"],
+                                 disabled=not has("pro"))
+        if st.button("Build matter prompts", key="btn_mm", disabled=not has("pro")):
+            ctx = {
+                "title": mm_title.strip() or "[Book Title]",
+                "author": mm_author.strip() or "[Author Name]",
+                "year": mm_year.strip() or str(date.today().year),
+                "dedication": mm_ded.strip() or "[your dedication]",
+                "about": mm_about.strip() or "[a sentence or two about you]",
+            }
+            if not mm_pick:
+                st.warning("Pick at least one page.")
+            else:
+                chunks = []
+                for name in mm_pick:
+                    p = build_matter_prompt(name, ctx, style_desc, color_mode)
+                    chunks.append(name.upper() + "\n" + p)
+                    st.markdown("**" + name + "**")
+                    st.code(p, language=None)
+                st.download_button("Download matter prompts (.txt)",
+                                   data=("\n\n\n".join(chunks)).encode("utf-8"),
+                                   file_name="storybook_matter_prompts.txt", mime="text/plain")
+
+        st.divider()
+        st.markdown("### Series - next book (same character)")
+        st.caption("Paste the Character Bible from an earlier book plus a new idea. You get a Step 1 "
+                   "prompt that reuses the exact character for a brand-new story.")
+        if not has("series"):
+            st.info("🔒 Unlock with the Series upgrade (OTO 3).")
+        sr_bible = st.text_area("Character Bible from the earlier book", height=140, key="sr_bible",
+                                disabled=not has("series"))
+        sr_idea = st.text_area("New story idea for this book", height=110, key="sr_idea",
+                               disabled=not has("series"))
+        sr_pc = st.text_input("Page count (optional)", key="sr_pc", disabled=not has("series"))
+        if st.button("Build series Story prompt", key="btn_sr", disabled=not has("series")):
+            if not sr_bible.strip() or not sr_idea.strip():
+                st.warning("Paste the Character Bible and a new story idea.")
+            else:
+                st.code(build_story_prompt(sr_idea, sr_pc, "", "", "", style_desc, shape_label_full,
+                                           color_mode, series_bible=sr_bible), language=None)
+
+        st.divider()
+        st.markdown("### Batch - many stories at once")
+        st.caption("One idea per line. You get a Step 1 prompt for each, using the settings above.")
+        if not has("series"):
+            st.info("🔒 Unlock with the Series upgrade (OTO 3).")
+        bt_ideas = st.text_area("Story ideas, one per line", height=140, key="bt_ideas",
+                                disabled=not has("series"))
+        bt_pc = st.text_input("Page count for all (optional)", key="bt_pc", disabled=not has("series"))
+        if st.button("Build batch Story prompts", key="btn_bt", disabled=not has("series")):
+            ideas = [x.strip() for x in bt_ideas.splitlines() if x.strip()]
+            if not ideas:
+                st.warning("Enter at least one idea.")
+            else:
+                chunks = []
+                for i, one in enumerate(ideas, 1):
+                    p = build_story_prompt(one, bt_pc, "", "", "", style_desc, shape_label_full, color_mode)
+                    chunks.append("STORY %d\n%s" % (i, p))
+                    st.markdown("**Story %d**" % i)
+                    st.code(p, language=None)
+                st.download_button("Download all batch prompts (.txt)",
+                                   data=("\n\n\n".join(chunks)).encode("utf-8"),
+                                   file_name="storybook_batch_prompts.txt", mime="text/plain")
 
     st.markdown('</div>', unsafe_allow_html=True)
