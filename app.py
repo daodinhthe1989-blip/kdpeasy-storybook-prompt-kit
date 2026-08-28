@@ -135,10 +135,11 @@ TITLE_POS = {
 def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, shape_label):
     pc = page_count_raw.strip()
     if pc.isdigit():
-        pc_line = "Make the book exactly %d pages." % int(pc)
+        n = max(20, min(40, int(pc)))
+        pc_line = "Aim for exactly %d story pages. Hit this number as closely as you can." % n
     else:
-        pc_line = ("Choose the best number of pages, normally 10 to 16, never fewer than 10. "
-                   "No filler pages - every page must move the story forward.")
+        pc_line = ("Choose a good length, normally 24 to 32 story pages. Never fewer than 20 and "
+                   "never more than 40.")
 
     char_bits = []
     if ctype.strip():
@@ -165,8 +166,19 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         "Tell one clear story with a beginning, a middle event or discovery, and a satisfying ending. "
         "Follow the customer's story idea closely - keep the characters, setting, events, and ending "
         "they describe. If the idea is only a short line, invent the rest in the same spirit. Either "
-        "way keep the story focused: do not pad it with subplots, characters, or repetition the idea "
-        "does not call for.",
+        "way keep the story coherent and on-topic: every page belongs to this one story.",
+        "",
+        "The book must have at least 20 and at most 40 story pages.",
+        "",
+        "How to reach the page count: break the story into more, smaller beats - one action, "
+        "discovery, feeling, or step of the journey per page - and let secondary characters and each "
+        "stop along the way have their own page. Do NOT reach the count by repeating scenes, "
+        "restating the same idea, or adding events the idea does not support. If the idea is genuinely "
+        "too small for the target number, get as close as you can with real beats, then say so in one "
+        "short line.",
+        "",
+        "If your reply would be cut off before the last page, stop at a clean page boundary and end "
+        "with a line that says exactly: (continue) - the customer will then ask you to continue.",
         "",
         "Give the character a fixed visual identity (species, age look, body, face, distinctive features, "
         "clothing, accessories) and keep it identical on every page. Only pose, expression, action, and "
@@ -232,13 +244,15 @@ def parse_character_bible(text):
 
 def split_pages(text):
     matches = list(PAGE_SPLIT_RE.finditer(text))
-    pages = []
+    by_num = {}
     for i, m in enumerate(matches):
         num = int(m.group(1))
         start = m.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        pages.append((num, text[start:end].strip()))
-    return pages
+        # If a page number appears twice (e.g. ChatGPT restarted it after a
+        # "(continue)" break), the later, more complete block wins.
+        by_num[num] = text[start:end].strip()
+    return [(n, by_num[n]) for n in sorted(by_num)]
 
 
 def extract_field(block, name):
@@ -447,7 +461,11 @@ if check_password():
         )
         st.caption("A short idea is fine. A detailed paragraph - characters, setting, what happens, how "
                    "it ends - gives you a story much closer to what you had in mind.")
-        page_count = st.text_input("Page count (optional)", placeholder="leave blank = let AI choose 10-16")
+        page_count = st.text_input("Page count (optional)",
+                                   placeholder="blank = AI picks ~24-32; any number from 20 to 40")
+        st.caption("Books are always 20 to 40 pages. Stretching a thin idea over many pages makes it "
+                   "weaker, so match the count to the idea. On longer books ChatGPT may stop partway "
+                   "and end with \"(continue)\" - just reply \"continue\" in the chat to get the rest.")
         st.markdown("**Character (all optional - leave blank for AI to invent)**")
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -461,6 +479,9 @@ if check_password():
             if not idea.strip():
                 st.warning("Enter a story idea first.")
             else:
+                pcs = page_count.strip()
+                if pcs.isdigit() and not (20 <= int(pcs) <= 40):
+                    st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
                 st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2.")
                 st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc, shape_label),
                         language=None)
