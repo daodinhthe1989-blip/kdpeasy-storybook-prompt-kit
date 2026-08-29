@@ -581,48 +581,55 @@ if check_password():
         )
 
     # ---- global choices ----
-    # One "Illustration style" menu holds everything. Full-color styles are
-    # prefixed "Color - ". Pro-only entries still SHOW for FE users, tagged
-    # "(Pro)"; if an FE user picks one, we warn and fall back to the first FE
-    # style. Whether the interior is color is decided by which entry is chosen.
-    style_rows = []  # (clean_label, desc, is_color, locked)
+    # FE sees only the 2 base B&W styles and the 3 generic shapes. Pro adds
+    # 3 more B&W styles + 8 full-color styles ("Color - ...") and the exact
+    # KDP trims. Picking a "Color - " entry makes the interior color.
+    style_menu = {}
     for _k, _v in STYLE_BW_FE.items():
-        style_rows.append((_k, _v, False, False))
-    for _k, _v in STYLE_BW_PRO.items():
-        style_rows.append((_k, _v, False, not has("pro")))
-    for _k, _v in STYLE_COLOR.items():
-        style_rows.append(("Color - " + _k, _v, True, not has("pro")))
-    style_opts = [(lbl + "   (Pro)") if lk else lbl for (lbl, _d, _c, lk) in style_rows]
+        style_menu[_k] = (_v, False)
+    if has("pro"):
+        for _k, _v in STYLE_BW_PRO.items():
+            style_menu[_k] = (_v, False)
+        for _k, _v in STYLE_COLOR.items():
+            style_menu["Color - " + _k] = (_v, True)
 
-    shape_rows = []  # (clean_label, desc, note, locked)
-    for _k, (_d, _n) in BOOK_SHAPE_FE.items():
-        shape_rows.append((_k, _d, _n, False))
-    for _k, (_d, _n) in BOOK_SHAPE_PRO.items():
-        shape_rows.append((_k, _d, _n, not has("pro")))
-    shape_opts = [(lbl + "   (Pro)") if lk else lbl for (lbl, _d, _n, lk) in shape_rows]
+    shape_lookup = dict(BOOK_SHAPE_FE)
+    if has("pro"):
+        shape_lookup.update(BOOK_SHAPE_PRO)
 
     m1, m2 = st.columns(2)
     with m1:
-        _sel_style = st.selectbox("Illustration style", style_opts)
+        style_label = st.selectbox("Illustration style", list(style_menu))
     with m2:
-        _sel_shape = st.selectbox("Book size", shape_opts)
+        shape_label_full = st.selectbox("Book size", list(shape_lookup))
 
-    style_label, style_desc, color_mode, _s_locked = style_rows[style_opts.index(_sel_style)]
-    if _s_locked:
-        st.warning('"%s" needs the Pro upgrade (OTO 2). Using "%s" for now.'
-                   % (style_label, style_rows[0][0]))
-        style_label, style_desc, color_mode, _s_locked = style_rows[0]
-
-    shape_label_full, shape_desc, shape_note, _b_locked = shape_rows[shape_opts.index(_sel_shape)]
-    if _b_locked:
-        st.warning('"%s" needs the Pro upgrade (OTO 2). Using "%s" for now.'
-                   % (shape_label_full, shape_rows[0][0]))
-        shape_label_full, shape_desc, shape_note, _b_locked = shape_rows[0]
+    style_desc, color_mode = style_menu[style_label]
+    shape_desc, shape_note = shape_lookup[shape_label_full]
     if shape_note:
         st.caption(shape_note)
+
+    # FE preview of what the Pro upgrade adds - shown greyed / locked so buyers
+    # can see the value before upgrading.
     if not has("pro"):
-        st.caption("Full color, more styles, and exact KDP trim sizes unlock with the Pro "
-                   "upgrade (OTO 2).")
+        try:
+            _box = st.container(border=True)
+        except TypeError:
+            _box = st.container()
+        with _box:
+            st.caption("With the **Pro upgrade (OTO 2)** you also unlock:")
+            st.multiselect(
+                "Full color + more illustration styles",
+                list(STYLE_BW_PRO) + ["Color - " + _k for _k in STYLE_COLOR],
+                default=list(STYLE_BW_PRO) + ["Color - " + _k for _k in STYLE_COLOR],
+                disabled=True, key="lk_styles")
+            st.multiselect(
+                "Exact KDP trim sizes",
+                list(BOOK_SHAPE_PRO),
+                default=list(BOOK_SHAPE_PRO),
+                disabled=True, key="lk_shapes")
+            st.caption("Plus the Character reference sheet and Front/Back matter prompts "
+                       "in the Pro & Series tools tab.")
+
     _base_style = style_label[8:] if style_label.startswith("Color - ") else style_label
     cover_style = cover_style_desc_for(_base_style)
 
