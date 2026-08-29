@@ -608,27 +608,24 @@ if check_password():
     if shape_note:
         st.caption(shape_note)
 
-    # FE preview of what the Pro upgrade adds - shown greyed / locked so buyers
-    # can see the value before upgrading.
-    if not has("pro"):
+    # FE preview of the upgrades - so buyers can see what unlocking gets them.
+    if not (has("pages") and has("pro")):
         try:
             _box = st.container(border=True)
-        except TypeError:
+        except Exception:
             _box = st.container()
         with _box:
-            st.caption("With the **Pro upgrade (OTO 2)** you also unlock:")
-            st.multiselect(
-                "Full color + more illustration styles",
-                list(STYLE_BW_PRO) + ["Color - " + _k for _k in STYLE_COLOR],
-                default=list(STYLE_BW_PRO) + ["Color - " + _k for _k in STYLE_COLOR],
-                disabled=True, key="lk_styles")
-            st.multiselect(
-                "Exact KDP trim sizes",
-                list(BOOK_SHAPE_PRO),
-                default=list(BOOK_SHAPE_PRO),
-                disabled=True, key="lk_shapes")
-            st.caption("Plus the Character reference sheet and Front/Back matter prompts "
-                       "in the Pro & Series tools tab.")
+            st.markdown("**Unlock more with the upgrades:**")
+            if not has("pages"):
+                st.markdown(":lock: **OTO 1 - Plain coloring pages.** One consistent "
+                            "character, a page per scene, no story and no text on the page "
+                            "- a straight coloring book. (Also includes the Upscaler and "
+                            "PDF Builder.)")
+            if not has("pro"):
+                st.markdown(":lock: **OTO 2 - Full-color storybooks.** Full color instead "
+                            "of line art, 10+ more art styles, exact KDP trim sizes, a "
+                            "character reference sheet, and title / copyright / dedication "
+                            "pages.")
 
     _base_style = style_label[8:] if style_label.startswith("Color - ") else style_label
     cover_style = cover_style_desc_for(_base_style)
