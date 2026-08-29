@@ -17,6 +17,12 @@ PASSWORDS = {
     "KDPSTORYPRO2026":    {"pro": True,  "series": False, "expires": None},
     "KDPSTORYSERIES2026": {"pro": False, "series": True,  "expires": None},
     "KDPSTORYMAX2026":    {"pro": True,  "series": True,  "expires": None},
+
+    # 3-day trial. Stops working AFTER the date below (it still works ON that
+    # date). Today is 2026-08-29, so this gives 2026-08-29, 30, 31 and 09-01.
+    # To run a fresh trial later: change the password string AND the date.
+    # For a full-feature trial instead, set "pro": True, "series": True.
+    "KDPSTORYTRIAL2026": {"pro": False, "series": False, "expires": date(2026, 9, 1)},
 }
 
 CUSTOM_CSS = """
