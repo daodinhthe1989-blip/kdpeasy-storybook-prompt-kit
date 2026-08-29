@@ -5,24 +5,28 @@ from datetime import date
 st.set_page_config(page_title="KDPEasy Storybook Prompt Kit", page_icon="📖", layout="centered")
 
 # ----------------------------------------------------------------------------
-# Access. Hand each buyer the password that matches what they bought:
-#   FE only ............... KDPSTORY2026
-#   FE + OTO2 (Pro) ...... KDPSTORYPRO2026
-#   FE + OTO3 (Series) ... KDPSTORYSERIES2026
-#   FE + OTO2 + OTO3 ..... KDPSTORYMAX2026
-# "expires": None = permanent; or a datetime.date for a time-limited trial.
+# Access. Each password = "everything up to and including this OTO":
+#   FE only .......................... KDPSTORY2026
+#   FE + OTO1 (Coloring Pages) ....... KDPSTORYPAGES2026
+#   FE + OTO1 + OTO2 (Pro / Color) ... KDPSTORYPRO2026
+#   FE + OTO1 + OTO2 + OTO3 (Series) . KDPSTORYMAX2026
+# Flags: "pages" = OTO1 no-text coloring-pages mode; "pro" = OTO2 (color +
+# styles + KDP trims + character sheet + matter pages); "series" = OTO3
+# (series next-book + batch). "expires": None = permanent, or a datetime.date.
+# If a buyer DECLINED an earlier OTO, hand them a password matching exactly
+# what they own (add a custom entry here).
 # ----------------------------------------------------------------------------
 PASSWORDS = {
-    "KDPSTORY2026":       {"pro": False, "series": False, "expires": None},
-    "KDPSTORYPRO2026":    {"pro": True,  "series": False, "expires": None},
-    "KDPSTORYSERIES2026": {"pro": False, "series": True,  "expires": None},
-    "KDPSTORYMAX2026":    {"pro": True,  "series": True,  "expires": None},
+    "KDPSTORY2026":       {"pages": False, "pro": False, "series": False, "expires": None},
+    "KDPSTORYPAGES2026":  {"pages": True,  "pro": False, "series": False, "expires": None},
+    "KDPSTORYPRO2026":    {"pages": True,  "pro": True,  "series": False, "expires": None},
+    "KDPSTORYMAX2026":    {"pages": True,  "pro": True,  "series": True,  "expires": None},
+    "KDPSTORYSERIES2026": {"pages": True,  "pro": True,  "series": True,  "expires": None},  # alias of MAX
 
-    # 3-day trial. Stops working AFTER the date below (it still works ON that
-    # date). Today is 2026-08-29, so this gives 2026-08-29, 30, 31 and 09-01.
-    # To run a fresh trial later: change the password string AND the date.
-    # For a full-feature trial instead, set "pro": True, "series": True.
-    "KDPSTORYTRIAL2026": {"pro": False, "series": False, "expires": date(2026, 9, 1)},
+    # 3-day trial. Works UP TO AND INCLUDING the date below, then stops.
+    # Today is 2026-08-29, so this gives 2026-08-29, 30, 31 and 09-01.
+    # For a new trial: change the password string AND the date.
+    "KDPSTORYTRIAL2026": {"pages": False, "pro": False, "series": False, "expires": date(2026, 9, 1)},
 }
 
 CUSTOM_CSS = """
@@ -58,14 +62,15 @@ def check_password() -> bool:
             st.error("This trial password has expired. Please reach out to get full access.")
         else:
             st.session_state["authed"] = True
-            st.session_state["tier"] = {"pro": tier["pro"], "series": tier["series"]}
+            st.session_state["tier"] = {"pages": tier["pages"], "pro": tier["pro"],
+                                        "series": tier["series"]}
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     return False
 
 
 def has(feature: str) -> bool:
-    """feature is 'pro' (OTO2) or 'series' (OTO3)."""
+    """feature is 'pages' (OTO1), 'pro' (OTO2), or 'series' (OTO3)."""
     return bool(st.session_state.get("tier", {}).get(feature))
 
 
@@ -504,6 +509,37 @@ def build_matter_prompt(page_name, ctx, style_desc, color_mode):
 
 
 # ----------------------------------------------------------------------------
+# OTO 1 - plain coloring pages (no story, no text)
+# ----------------------------------------------------------------------------
+
+def build_scene_ideas_prompt(char, theme, n):
+    t = (" around the theme of " + theme.strip()) if theme.strip() else ""
+    return ("Give me %d different coloring-page scene ideas for the character below%s. "
+            "Each one a short, concrete, child-friendly scene on its own line, with no "
+            "numbering. Vary the action, place, and objects so the pages feel different, "
+            "and give each scene plenty of things to color.\n\n"
+            "CHARACTER:\n%s" % (n, t, char.strip() or "(describe your character here)"))
+
+
+def build_coloring_page_prompt(scene, char, shape_desc, style_desc):
+    ch = char.strip() or "(keep the exact same character on every page)"
+    return "\n".join([
+        "Black and white line art for a single coloring book page. " + shape_desc,
+        "",
+        "CHARACTER (must look identical on every page):",
+        ch,
+        "",
+        "SCENE: " + scene.strip(),
+        "",
+        "STYLE: " + style_desc + ".",
+        LINE_ART_LOCK,
+        ("Do NOT add any text, letters, numbers, title, caption, speech bubble, or page "
+         "number anywhere. Just the character in the scene, as clean, open line art to "
+         "color."),
+    ])
+
+
+# ----------------------------------------------------------------------------
 # UI
 # ----------------------------------------------------------------------------
 
@@ -545,28 +581,43 @@ if check_password():
         )
 
     # ---- global choices ----
-    # One "Illustration style" menu holds everything. Black & white styles have
-    # plain names; full-color styles (Pro) are prefixed "Color - ". Whether the
-    # interior is color is decided by which entry is chosen - no separate toggle.
-    style_menu = {}
+    # One "Illustration style" menu holds everything. Full-color styles are
+    # prefixed "Color - ". Pro-only entries still SHOW for FE users, tagged
+    # "(Pro)"; if an FE user picks one, we warn and fall back to the first FE
+    # style. Whether the interior is color is decided by which entry is chosen.
+    style_rows = []  # (clean_label, desc, is_color, locked)
     for _k, _v in STYLE_BW_FE.items():
-        style_menu[_k] = (_v, False)
-    if has("pro"):
-        for _k, _v in STYLE_BW_PRO.items():
-            style_menu[_k] = (_v, False)
-        for _k, _v in STYLE_COLOR.items():
-            style_menu["Color - " + _k] = (_v, True)
+        style_rows.append((_k, _v, False, False))
+    for _k, _v in STYLE_BW_PRO.items():
+        style_rows.append((_k, _v, False, not has("pro")))
+    for _k, _v in STYLE_COLOR.items():
+        style_rows.append(("Color - " + _k, _v, True, not has("pro")))
+    style_opts = [(lbl + "   (Pro)") if lk else lbl for (lbl, _d, _c, lk) in style_rows]
+
+    shape_rows = []  # (clean_label, desc, note, locked)
+    for _k, (_d, _n) in BOOK_SHAPE_FE.items():
+        shape_rows.append((_k, _d, _n, False))
+    for _k, (_d, _n) in BOOK_SHAPE_PRO.items():
+        shape_rows.append((_k, _d, _n, not has("pro")))
+    shape_opts = [(lbl + "   (Pro)") if lk else lbl for (lbl, _d, _n, lk) in shape_rows]
 
     m1, m2 = st.columns(2)
     with m1:
-        style_label = st.selectbox("Illustration style", list(style_menu))
+        _sel_style = st.selectbox("Illustration style", style_opts)
     with m2:
-        shape_options = list(BOOK_SHAPE_FE) + (list(BOOK_SHAPE_PRO) if has("pro") else [])
-        shape_lookup = {**BOOK_SHAPE_FE, **BOOK_SHAPE_PRO}
-        shape_label_full = st.selectbox("Book size", shape_options)
+        _sel_shape = st.selectbox("Book size", shape_opts)
 
-    style_desc, color_mode = style_menu[style_label]
-    shape_desc, shape_note = shape_lookup[shape_label_full]
+    style_label, style_desc, color_mode, _s_locked = style_rows[style_opts.index(_sel_style)]
+    if _s_locked:
+        st.warning('"%s" needs the Pro upgrade (OTO 2). Using "%s" for now.'
+                   % (style_label, style_rows[0][0]))
+        style_label, style_desc, color_mode, _s_locked = style_rows[0]
+
+    shape_label_full, shape_desc, shape_note, _b_locked = shape_rows[shape_opts.index(_sel_shape)]
+    if _b_locked:
+        st.warning('"%s" needs the Pro upgrade (OTO 2). Using "%s" for now.'
+                   % (shape_label_full, shape_rows[0][0]))
+        shape_label_full, shape_desc, shape_note, _b_locked = shape_rows[0]
     if shape_note:
         st.caption(shape_note)
     if not has("pro"):
@@ -575,8 +626,9 @@ if check_password():
     _base_style = style_label[8:] if style_label.startswith("Color - ") else style_label
     cover_style = cover_style_desc_for(_base_style)
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["Step 1 - Story", "Step 2 - Page prompts", "Step 3 - Covers", "Pro & Series tools"])
+    tab1, tab2, tab3, tab_cp, tab4 = st.tabs(
+        ["Step 1 - Story", "Step 2 - Page prompts", "Step 3 - Covers",
+         "Coloring pages (no story)", "Pro & Series tools"])
 
     # ---------------- Step 1 ----------------
     with tab1:
@@ -683,6 +735,56 @@ if check_password():
             both = "FRONT COVER\n" + front + "\n\n\nBACK COVER\n" + back
             st.download_button("Download both cover prompts (.txt)", data=both.encode("utf-8"),
                                file_name="storybook_cover_prompts.txt", mime="text/plain")
+
+    # ---------------- Coloring pages (no story) - OTO 1 ----------------
+    with tab_cp:
+        st.markdown("### Plain coloring pages - no story, no text")
+        st.caption("For a straight coloring book: one consistent character, a page per "
+                   "scene, nothing written on the page.")
+        _cp = has("pages")
+        if not _cp:
+            st.info("🔒 Unlock with the Coloring Pages upgrade (OTO 1).")
+
+        cp_char = st.text_area(
+            "Character - paste a Character Bible from a storybook, or describe your character",
+            height=120, key="cp_char", disabled=not _cp,
+            placeholder="A round, cheerful hedgehog cub with a tiny flower behind one ear "
+                        "and a striped scarf.")
+
+        st.markdown("**Need scene ideas?** Build this prompt, run it in ChatGPT, paste the "
+                    "list back into the box below.")
+        ci1, ci2 = st.columns(2)
+        with ci1:
+            cp_theme = st.text_input("Theme (optional)", key="cp_theme",
+                                     placeholder="a day at the seaside", disabled=not _cp)
+        with ci2:
+            cp_n = st.number_input("How many ideas", min_value=5, max_value=60, value=30,
+                                   step=5, key="cp_n", disabled=not _cp)
+        if st.button("Build 'scene ideas' prompt", key="btn_cp_ideas", disabled=not _cp):
+            st.code(build_scene_ideas_prompt(cp_char, cp_theme, int(cp_n)), language=None)
+
+        st.divider()
+        cp_scenes = st.text_area("Scene ideas (one per line)", height=180, key="cp_scenes",
+                                 disabled=not _cp,
+                                 placeholder="building a sandcastle with a bucket and spade\n"
+                                             "collecting shells along the shoreline\n"
+                                             "flying a kite shaped like a fish")
+        if st.button("Build coloring page prompts", key="btn_cp", disabled=not _cp):
+            scenes = [x.strip() for x in cp_scenes.splitlines() if x.strip()]
+            if not scenes:
+                st.warning("Enter at least one scene idea.")
+            else:
+                st.success("Built %d coloring page prompt(s). Generate them in one ChatGPT "
+                           "image chat, anchored by your first page." % len(scenes))
+                chunks = []
+                for i, sc in enumerate(scenes, 1):
+                    p = build_coloring_page_prompt(sc, cp_char, shape_desc, style_desc)
+                    chunks.append("PAGE %02d\n%s" % (i, p))
+                    st.markdown("**Page %02d**" % i)
+                    st.code(p, language=None)
+                st.download_button("Download all coloring page prompts (.txt)",
+                                   data=("\n\n\n".join(chunks)).encode("utf-8"),
+                                   file_name="coloring_page_prompts.txt", mime="text/plain")
 
     # ---------------- Pro & Series tools ----------------
     with tab4:
