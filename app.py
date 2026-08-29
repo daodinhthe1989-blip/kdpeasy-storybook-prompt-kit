@@ -539,37 +539,35 @@ if check_password():
         )
 
     # ---- global choices ----
-    color_choice = st.radio(
-        "Interior style",
-        ["Black & white (coloring book)", "Full color"],
-        horizontal=True,
-        disabled=not has("pro"),
-    )
-    if not has("pro"):
-        st.caption("Full color unlocks with the Pro upgrade (OTO 2).")
-    color_mode = has("pro") and color_choice.startswith("Full color")
-
-    if color_mode:
-        style_options = list(STYLE_COLOR)
-        style_lookup = STYLE_COLOR
-    else:
-        style_options = list(STYLE_BW_FE) + (list(STYLE_BW_PRO) if has("pro") else [])
-        style_lookup = {**STYLE_BW_FE, **STYLE_BW_PRO}
+    # One "Illustration style" menu holds everything. Black & white styles have
+    # plain names; full-color styles (Pro) are prefixed "Color - ". Whether the
+    # interior is color is decided by which entry is chosen - no separate toggle.
+    style_menu = {}
+    for _k, _v in STYLE_BW_FE.items():
+        style_menu[_k] = (_v, False)
+    if has("pro"):
+        for _k, _v in STYLE_BW_PRO.items():
+            style_menu[_k] = (_v, False)
+        for _k, _v in STYLE_COLOR.items():
+            style_menu["Color - " + _k] = (_v, True)
 
     m1, m2 = st.columns(2)
     with m1:
-        style_label = st.selectbox("Illustration style", style_options)
+        style_label = st.selectbox("Illustration style", list(style_menu))
     with m2:
         shape_options = list(BOOK_SHAPE_FE) + (list(BOOK_SHAPE_PRO) if has("pro") else [])
         shape_lookup = {**BOOK_SHAPE_FE, **BOOK_SHAPE_PRO}
         shape_label_full = st.selectbox("Book size", shape_options)
-    style_desc = style_lookup[style_label]
+
+    style_desc, color_mode = style_menu[style_label]
     shape_desc, shape_note = shape_lookup[shape_label_full]
     if shape_note:
         st.caption(shape_note)
     if not has("pro"):
-        st.caption("More styles + exact KDP trim sizes unlock with the Pro upgrade (OTO 2).")
-    cover_style = cover_style_desc_for(style_label) if color_mode else STYLE_COLOR.get(style_label, cover_style_desc_for(style_label))
+        st.caption("Full color, more styles, and exact KDP trim sizes unlock with the Pro "
+                   "upgrade (OTO 2).")
+    _base_style = style_label[8:] if style_label.startswith("Color - ") else style_label
+    cover_style = cover_style_desc_for(_base_style)
 
     tab1, tab2, tab3, tab4 = st.tabs(
         ["Step 1 - Story", "Step 2 - Page prompts", "Step 3 - Covers", "Pro & Series tools"])
