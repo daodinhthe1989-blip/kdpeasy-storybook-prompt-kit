@@ -539,15 +539,14 @@ if check_password():
         )
 
     # ---- global choices ----
-    m1, m2 = st.columns(2)
-    with m1:
-        color_choice = st.radio(
-            "Interior style",
-            ["Black & white line art (coloring book)", "Full color storybook"],
-            disabled=not has("pro"),
-        )
-        if not has("pro"):
-            st.caption("Full-color interiors unlock with the Pro upgrade (OTO 2).")
+    color_choice = st.radio(
+        "Interior style",
+        ["Black & white (coloring book)", "Full color"],
+        horizontal=True,
+        disabled=not has("pro"),
+    )
+    if not has("pro"):
+        st.caption("Full color unlocks with the Pro upgrade (OTO 2).")
     color_mode = has("pro") and color_choice.startswith("Full color")
 
     if color_mode:
@@ -557,20 +556,19 @@ if check_password():
         style_options = list(STYLE_BW_FE) + (list(STYLE_BW_PRO) if has("pro") else [])
         style_lookup = {**STYLE_BW_FE, **STYLE_BW_PRO}
 
-    with m2:
+    m1, m2 = st.columns(2)
+    with m1:
         style_label = st.selectbox("Illustration style", style_options)
-        if not has("pro"):
-            st.caption("More styles + full color in the Pro upgrade (OTO 2).")
+    with m2:
+        shape_options = list(BOOK_SHAPE_FE) + (list(BOOK_SHAPE_PRO) if has("pro") else [])
+        shape_lookup = {**BOOK_SHAPE_FE, **BOOK_SHAPE_PRO}
+        shape_label_full = st.selectbox("Book size", shape_options)
     style_desc = style_lookup[style_label]
-
-    shape_options = list(BOOK_SHAPE_FE) + (list(BOOK_SHAPE_PRO) if has("pro") else [])
-    shape_lookup = {**BOOK_SHAPE_FE, **BOOK_SHAPE_PRO}
-    shape_label_full = st.selectbox("Book size", shape_options)
     shape_desc, shape_note = shape_lookup[shape_label_full]
     if shape_note:
         st.caption(shape_note)
     if not has("pro"):
-        st.caption("Exact KDP trim sizes unlock with the Pro upgrade (OTO 2).")
+        st.caption("More styles + exact KDP trim sizes unlock with the Pro upgrade (OTO 2).")
     cover_style = cover_style_desc_for(style_label) if color_mode else STYLE_COLOR.get(style_label, cover_style_desc_for(style_label))
 
     tab1, tab2, tab3, tab4 = st.tabs(
