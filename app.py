@@ -431,6 +431,52 @@ def build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, t
     return "\n".join(lines)
 
 
+def build_kdp_listing_prompt(summary, title, age, extra):
+    title_line = ("Book title: '" + title.strip() + "'.") if title.strip() else \
+        "The book has no fixed title yet - suggest one, then write the rest."
+    age_line = ("Target age range: " + age.strip() + ".") if age.strip() else \
+        "Target age range: pick a sensible one for a young children's coloring storybook."
+    extra_line = ("Niche / angle words to lean on: " + extra.strip() + ".") if extra.strip() else ""
+    lines = [
+        "You are an Amazon KDP listing copywriter for children's coloring storybooks.",
+        "Using ONLY the story summary below, write a complete Amazon listing.",
+        "",
+        "STORY SUMMARY: " + summary.strip(),
+        title_line,
+        age_line,
+    ]
+    if extra_line:
+        lines.append(extra_line)
+    lines += [
+        "",
+        "OUTPUT THESE THREE PARTS, clearly labelled:",
+        "",
+        "1) BOOK DESCRIPTION (max 4000 characters). Seven short sections in this order, and "
+        "wrap the first sentence of each section in <b>...</b> tags (KDP allows basic HTML):",
+        "   a. Hook - one or two lines, an emotional question or a vivid moment.",
+        "   b. Tease - introduce the character and the situation without spoiling the ending.",
+        "   c. What's inside - 4 to 5 bullet points of real book features (page count feel, "
+        "read-aloud story on every page, clean line art, single-sided pages, etc.).",
+        "   d. Perfect for - specific occasions (quiet time, gifts, road trips, classrooms).",
+        "   e. Why grown-ups love it - the calm-time / fine-motor / together-time benefits.",
+        "   f. Call to action - a plain 'Scroll up and add it to your cart today' style line.",
+        "   g. More to come - one line hinting at other books with this character.",
+        "",
+        "2) SEVEN BACKEND KEYWORDS. Search phrases a parent would actually type, up to 50 "
+        "characters each, no repeats of words already in the title. Mix 1-2 broader phrases "
+        "with 5-6 specific long-tail phrases. One per line.",
+        "",
+        "3) THREE CATEGORIES from the Amazon 'Books > Children's Books' tree that best fit "
+        "this story (for example: Children's Books > Animals; Children's Books > Bedtime & "
+        "Dreams; Children's Books > Activity Books > Coloring Books). Give the full path for "
+        "each.",
+        "",
+        "Keep the writing warm, clear, and honest. Do not invent characters, events, awards, "
+        "or claims that are not in the summary.",
+    ]
+    return "\n".join(lines)
+
+
 def build_back_cover_prompt(summary, char_colors, cover_style_desc, shape_desc):
     lines = [
         "Full color BACK COVER for the same children's storybook. " + shape_desc,
@@ -577,7 +623,12 @@ if check_password():
             "- Keep the story chat and the image chat separate, or the linework fades page to page.\n"
             "- Black-and-white interiors have the story text drawn in. Covers are always full color.\n"
             "- If an image chat gets very long, start a fresh one and upload a finished page first.\n"
-            "- ChatGPT's text-in-image is good but not perfect - expect to regenerate a few pages."
+            "- ChatGPT's text-in-image is good but not perfect - expect to regenerate a few pages.\n\n"
+            "**This tool does not save your work.** As you go, keep these on your computer: "
+            "(1) ChatGPT's full story reply - copy it into a text file, (2) the page prompts "
+            "`.txt`, (3) the cover prompts `.txt`. If the page reloads, just paste your saved story "
+            "back into Step 2 and rebuild - it takes seconds. Your generated images live in ChatGPT, "
+            "not here, so save those too."
         )
 
     # ---- global choices ----
@@ -666,9 +717,13 @@ if check_password():
                 pcs = page_count.strip()
                 if pcs.isdigit() and not (20 <= int(pcs) <= 40):
                     st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
-                st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2.")
-                st.code(build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc,
-                                           shape_label_full, color_mode), language=None)
+                st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2 "
+                           "AND save it in a text file on your computer.")
+                _sp = build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc,
+                                         shape_label_full, color_mode)
+                st.code(_sp, language=None)
+                st.download_button("Download story prompt (.txt)", data=_sp.encode("utf-8"),
+                                   file_name="storybook_story_prompt.txt", mime="text/plain")
 
     # ---------------- Step 2 ----------------
     with tab2:
@@ -739,6 +794,19 @@ if check_password():
             both = "FRONT COVER\n" + front + "\n\n\nBACK COVER\n" + back
             st.download_button("Download both cover prompts (.txt)", data=both.encode("utf-8"),
                                file_name="storybook_cover_prompts.txt", mime="text/plain")
+
+        st.divider()
+        st.markdown("### KDP listing helper")
+        st.caption("A prompt that makes ChatGPT write your Amazon listing: the book "
+                   "description, 7 backend keywords, and 3 category suggestions.")
+        kl_age = st.text_input("Age range for the listing", key="kl_age", placeholder="4-8")
+        kl_extra = st.text_input("Niche / angle words (optional)", key="kl_extra",
+                                 placeholder="bedtime, animals, kindness")
+        if st.button("Build KDP listing prompt", key="btn_kl"):
+            if not summary.strip():
+                st.warning("Paste the story summary at the top of this tab first.")
+            else:
+                st.code(build_kdp_listing_prompt(summary, title, kl_age, kl_extra), language=None)
 
     # ---------------- Coloring pages (no story) - OTO 1 ----------------
     with tab_cp:
