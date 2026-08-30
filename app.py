@@ -184,7 +184,7 @@ MATTER_PAGES = {
 # Step 1 - Story Engine prompt
 # ----------------------------------------------------------------------------
 
-def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, shape_label,
+def build_story_prompt(idea, page_count_raw, style_desc, shape_label,
                        color_mode=False, series_bible=""):
     pc = page_count_raw.strip()
     if pc.isdigit():
@@ -221,19 +221,12 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
             "",
         ]
 
-    char_bits = []
-    if ctype.strip():
-        char_bits.append("type/species: " + ctype.strip())
-    if cage.strip():
-        char_bits.append("age: " + cage.strip())
-    if coutfit.strip():
-        char_bits.append("outfit: " + coutfit.strip())
     if series_bible.strip():
         char_line = "Use the character from the Character Bible above, unchanged."
-    elif char_bits:
-        char_line = "Use this main character and fill in the rest yourself: " + "; ".join(char_bits) + "."
     else:
-        char_line = "Create a fitting main character yourself."
+        char_line = ("If the story idea already names or describes a character, use exactly that "
+                     "character and fill in the rest of its look yourself. Otherwise, create a "
+                     "fitting main character.")
 
     lines += [
         "STORY IDEA: " + idea.strip(),
@@ -725,14 +718,9 @@ if check_password():
                                    placeholder="blank = AI picks ~24-32; any number from 20 to 40")
         st.caption("Books are always 20 to 40 pages. On longer books ChatGPT may stop partway and end "
                    "with \"(continue)\" - just reply \"continue\" in the chat.")
-        st.markdown("**Character (all optional - leave blank for AI to invent)**")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            ctype = st.text_input("Type / species")
-        with c2:
-            cage = st.text_input("Age")
-        with c3:
-            coutfit = st.text_input("Outfit")
+        st.caption("Name or describe your character right in the story idea (like \"Pip, a small "
+                   "round hedgehog in a flour-dusted apron\") and the prompt will keep it. If the "
+                   "idea has no character, the AI invents one.")
 
         if st.button("Build Story prompt", key="btn_story"):
             if not idea.strip():
@@ -743,8 +731,7 @@ if check_password():
                     st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
                 st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2 "
                            "AND save it in a text file on your computer.")
-                _sp = build_story_prompt(idea, page_count, ctype, cage, coutfit, style_desc,
-                                         shape_label_full, color_mode)
+                _sp = build_story_prompt(idea, page_count, style_desc, shape_label_full, color_mode)
                 st.code(_sp, language=None)
                 st.download_button("Download story prompt (.txt)", data=_sp.encode("utf-8"),
                                    file_name="storybook_story_prompt.txt", mime="text/plain")
@@ -950,7 +937,7 @@ if check_password():
             if not sr_bible.strip() or not sr_idea.strip():
                 st.warning("Paste the Character Bible and a new story idea.")
             else:
-                st.code(build_story_prompt(sr_idea, sr_pc, "", "", "", style_desc, shape_label_full,
+                st.code(build_story_prompt(sr_idea, sr_pc, style_desc, shape_label_full,
                                            color_mode, series_bible=sr_bible), language=None)
 
         st.divider()
@@ -968,7 +955,7 @@ if check_password():
             else:
                 chunks = []
                 for i, one in enumerate(ideas, 1):
-                    p = build_story_prompt(one, bt_pc, "", "", "", style_desc, shape_label_full, color_mode)
+                    p = build_story_prompt(one, bt_pc, style_desc, shape_label_full, color_mode)
                     chunks.append("STORY %d\n%s" % (i, p))
                     st.markdown("**Story %d**" % i)
                     st.code(p, language=None)
