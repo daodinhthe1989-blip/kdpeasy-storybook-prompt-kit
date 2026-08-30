@@ -117,13 +117,22 @@ BOOK_SHAPE_PRO = {
 }
 
 LINE_ART_LOCK = (
-    "Pure black and white line art only. Every line the same solid, even black weight - no "
-    "thick-and-thin variation, no faint or gray lines, no sketchy, broken, or doubled lines. "
-    "All shapes fully closed. No shading, no hatching, no stippling, no grayscale, no gray fill, "
-    "no color anywhere. Solid white background. Lines clean and heavy enough to print sharply "
-    "and to color inside. Do not crop the main subject. Keep clear white margins on all four "
-    "sides, nothing touching the edges. No frame, no border, no rectangle around the artwork."
+    "Pure black-and-white COLORING PAGE line art only: solid black outlines on a pure white "
+    "background. Every line the same solid, even black weight - no thick-and-thin variation, "
+    "no faint or gray lines, no sketchy, broken, or doubled lines. All shapes fully closed, "
+    "with open white areas inside every shape for coloring. "
+    "ABSOLUTELY NO: color, grayscale, gray tones, shading, shadows, hatching, crosshatching, "
+    "stippling, gradients, halftones, solid black fills, heavy ink areas, dark or black "
+    "backgrounds, sketch or pencil or charcoal texture, painterly effects, or realistic "
+    "lighting. "
+    "Lines clean and heavy enough to print sharply and to color inside. Do not crop the main "
+    "subject. Keep clear white margins on all four sides, nothing touching the edges. No "
+    "frame, no border, no rectangle around the artwork."
 )
+
+COLORING_REMINDER = ("Remember: this is a clean black-and-white coloring page - black outlines "
+                     "only, pure white background, no shading, no gray, no filled areas, open "
+                     "white spaces to color.")
 
 COLOR_INTERIOR_LOCK = (
     "Full color children's storybook illustration - bright, warm, and appealing, with a harmonious "
@@ -260,9 +269,13 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         ("<repeat the Character Bible provided above, unchanged>" if series_bible.strip()
          else "<all the fixed character details>"),
         "=== CHARACTER BIBLE END ===",
-        "3) TOTAL PAGE COUNT - a single number.",
-        "4) STORY ARC - 3 to 5 short lines.",
-        "5) The page-by-page plan. Output EVERY page in EXACTLY this format and nothing else between pages:",
+        "3) The global art style, wrapped exactly like this:",
+        "=== ART STYLE START ===",
+        (COLOR_INTERIOR_LOCK if color_mode else LINE_ART_LOCK),
+        "=== ART STYLE END ===",
+        "4) TOTAL PAGE COUNT - a single number.",
+        "5) STORY ARC - 3 to 5 short lines.",
+        "6) The page-by-page plan. Output EVERY page in EXACTLY this format and nothing else between pages:",
         "",
         "=== PAGE 01 ===",
         "STORY TEXT: <the 1-2 short sentences that will be printed on this page>",
@@ -275,6 +288,10 @@ def build_story_prompt(idea, page_count_raw, ctype, cage, coutfit, style_desc, s
         "",
         "Keep ILLUSTRATION DIRECTION consistent with the story - never introduce objects, places, or "
         "characters the story does not mention.",
+        ("Write each ILLUSTRATION DIRECTION as a plain description of WHAT is in the scene "
+         "(character pose, action, setting, props). Do NOT put any words about rendering, "
+         "medium, shading, shadows, lighting, mood, gray, or black areas in it - the global "
+         "ART STYLE block above controls all of that."),
         "Planned " + style_word + " style for later, keep the directions compatible with it: " + style_desc + ".",
         "The finished art will be " + shape_label + " - keep each scene composable in that shape.",
     ]
@@ -364,6 +381,7 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
         illo_dir,
         ("Central moment: " + story_scene) if story_scene else None,
         type_note,
+        (None if color_mode else COLORING_REMINDER),
         "",
         "STYLE: " + style_desc + ".",
         lock,
@@ -603,6 +621,11 @@ if check_password():
         badges.append("Series unlocked")
     if badges:
         st.success("  |  ".join(badges))
+
+    st.warning("**This tool does not save your work.** As you go, save ChatGPT's full story "
+               "reply and each prompt (.txt) to your own computer. If the page reloads, paste "
+               "your saved story back into Step 2 to carry on - it takes seconds. Your images "
+               "live in ChatGPT, so save those too.")
 
     with st.expander("How this kit works (read first)"):
         st.markdown(
