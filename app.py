@@ -5,20 +5,20 @@ from datetime import date
 st.set_page_config(page_title="KDPEasy Storybook Prompt Kit", page_icon="📖", layout="centered")
 
 # ----------------------------------------------------------------------------
-# Access. Passwords stack - each is "everything up to and including this OTO":
-#   FE only ......................... KDPSTORY2026
-#   FE + OTO1 (Coloring book) ....... KDPSTORYPAGES2026
-#   FE + OTO1 + OTO2 (Full color) ... KDPSTORYPRO2026
-# Flags: "pages" = OTO1 (coloring-book mode + extra B&W styles + KDP trims);
-#        "pro"   = OTO2 (full-color storybook mode + 8 color styles).
-# "expires": None = permanent, or a datetime.date. If a buyer declined an
-# earlier OTO, add a custom entry matching exactly what they own.
+# Access. One password per product - it unlocks ONLY that product's mode.
+# The cart delivers each product's password automatically. A buyer logs in
+# with one password per session; the green banner shows what it unlocked.
+#   FE ....................... KDPSTORY2026   (access, no extra modes)
+#   OTO1 (Coloring book) ..... KDPSTORYPAGES2026   -> "pages"
+#   OTO2 (Full color) ........ KDPSTORYPRO2026     -> "pro"
+# Flags: "pages" = coloring-book mode + 3 extra B&W styles + KDP trims;
+#        "pro"   = full-color storybook mode + 8 color styles.
+# "expires": None = permanent, or a datetime.date (trial).
 # ----------------------------------------------------------------------------
 PASSWORDS = {
     "KDPSTORY2026":       {"pages": False, "pro": False, "expires": None},
     "KDPSTORYPAGES2026":  {"pages": True,  "pro": False, "expires": None},
-    "KDPSTORYPRO2026":    {"pages": True,  "pro": True,  "expires": None},
-    "KDPSTORYMAX2026":    {"pages": True,  "pro": True,  "expires": None},  # alias of PRO
+    "KDPSTORYPRO2026":    {"pages": False, "pro": True,  "expires": None},
 
     # 3-day trial. Works UP TO AND INCLUDING the date below, then stops.
     # For a new trial: change the password string AND the date.
