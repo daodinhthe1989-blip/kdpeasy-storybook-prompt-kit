@@ -451,8 +451,9 @@ def build_kdp_listing_prompt(summary, title, age, extra):
         "",
         "OUTPUT THESE THREE PARTS, clearly labelled:",
         "",
-        "1) BOOK DESCRIPTION (max 4000 characters). Seven short sections in this order, and "
-        "wrap the first sentence of each section in <b>...</b> tags (KDP allows basic HTML):",
+        "1) BOOK DESCRIPTION (max 4000 characters). Plain text only - no HTML tags, no "
+        "markdown. Seven short sections in this order, each starting with a short standalone "
+        "lead line on its own, then the rest of the section:",
         "   a. Hook - one or two lines, an emotional question or a vivid moment.",
         "   b. Tease - introduce the character and the situation without spoiling the ending.",
         "   c. What's inside - 4 to 5 bullet points of real book features (page count feel, "
