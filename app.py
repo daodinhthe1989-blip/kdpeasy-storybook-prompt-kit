@@ -574,16 +574,20 @@ if check_password():
         )
 
     # ---- book type (mode) ----
-    mode_labels = []
-    for label, flag, _cm, _nt, oto in MODES:
-        locked = flag is not None and not has(flag)
-        mode_labels.append((":lock: " + label + "  (" + oto + ")") if locked else label)
-    _sel = st.radio("Book type", mode_labels)
-    _mi = mode_labels.index(_sel)
-    _label, _flag, color_mode, no_text, _oto = MODES[_mi]
-    if _flag is not None and not has(_flag):
-        st.info('"%s" unlocks with %s. Using "%s" for now.' % (_label, _oto, MODES[0][0]))
-        _label, _flag, color_mode, no_text, _oto = MODES[0]
+    # The radio holds only the modes this buyer owns. Locked modes show below
+    # it as greyed, non-clickable caption lines (Streamlit radio has no
+    # per-option disable).
+    _unlocked = [m for m in MODES if m[1] is None or has(m[1])]
+    _locked = [m for m in MODES if m[1] is not None and not has(m[1])]
+    if len(_unlocked) == 1:
+        _m = _unlocked[0]
+        st.markdown("**Book type:** " + _m[0])
+    else:
+        _pick = st.radio("Book type", [m[0] for m in _unlocked])
+        _m = _unlocked[[m[0] for m in _unlocked].index(_pick)]
+    _label, _flag, color_mode, no_text, _oto = _m
+    for _lm in _locked:
+        st.caption("🔒 " + _lm[0] + "  -  unlocks with " + _lm[4])
 
     # ---- style + book size ----
     if color_mode:
