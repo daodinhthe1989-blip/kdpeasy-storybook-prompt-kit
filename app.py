@@ -11,8 +11,9 @@ st.set_page_config(page_title="KDPEasy Storybook Prompt Kit", page_icon="📖", 
 #   FE ....................... KDPSTORY2026   (access, no extra modes)
 #   OTO1 (Coloring book) ..... KDPSTORYPAGES2026   -> "pages"
 #   OTO2 (Full color) ........ KDPSTORYPRO2026     -> "pro"
-# Flags: "pages" = coloring-book mode + 3 extra B&W styles + KDP trims;
-#        "pro"   = full-color storybook mode + 8 color styles.
+# Flags: "pages" = coloring-book mode + 3 extra B&W styles;
+#        "pro"   = full-color storybook mode + 6 color styles.
+# Book size (real KDP trims) is available to everyone.
 # "expires": None = permanent, or a datetime.date (trial).
 # ----------------------------------------------------------------------------
 PASSWORDS = {
@@ -95,19 +96,38 @@ STYLE_COLOR = {
     "Kawaii chibi": "cute kawaii chibi style with rounded shapes, big friendly eyes, and soft pastel color",
 }
 
-# Book size. FE = 3 generic shapes. OTO1 adds exact KDP trims (with the Canva doc size).
-BOOK_SHAPE_FE = {
-    "Portrait (tall)": ("Portrait orientation, clearly taller than wide (about 2:3). Keep extra open "
-                        "white margin at the top and bottom - the final printed page may be a different height.", ""),
-    "Square (1:1)": ("Square 1:1 composition, equal width and height.", ""),
-    "Landscape (wide)": ("Landscape orientation, clearly wider than tall (about 3:2).", ""),
-}
-BOOK_SHAPE_PRO = {
-    "KDP 8.5 x 8.5 in (square)": ("Square 1:1 composition, equal width and height.", "Canva document: 8.75 x 8.75 in"),
-    "KDP 8 x 8 in (square)": ("Square 1:1 composition, equal width and height.", "Canva document: 8.25 x 8.25 in"),
-    "KDP 6 x 9 in (portrait)": ("Portrait orientation, taller than wide, about 2:3.", "Canva document: 6.25 x 9.25 in"),
-    "KDP 8 x 10 in (portrait)": ("Portrait orientation, taller than wide, about 4:5.", "Canva document: 8.25 x 10.25 in"),
-    "KDP 8.5 x 11 in (portrait)": ("Portrait orientation, taller than wide, about 3:4.", "Canva document: 8.75 x 11.25 in"),
+# Book size. One list for everyone - real KDP trims. First tuple item goes into
+# the prompts; second is a UI caption telling the customer the layout doc size
+# and which ratio to actually ask ChatGPT for (it only renders 1:1, 2:3, 3:2).
+SAFE_AREA = ("Keep every important part of the picture - faces, the main character, key objects - "
+             "inside a centered safe area with wide, even margins on all four sides. Nothing that "
+             "matters near the edges, so the art still fits when it is placed on the printed page "
+             "even if the page proportion is a little different.")
+BOOK_SHAPE = {
+    "KDP 8.5 x 8.5 in - square (most popular)": (
+        "Square 1:1 composition, equal width and height. " + SAFE_AREA,
+        "Layout / Canva document: 8.75 x 8.75 in (includes bleed). Ask ChatGPT for a 1:1 square image - exact match.",
+    ),
+    "KDP 8 x 8 in - square": (
+        "Square 1:1 composition, equal width and height. " + SAFE_AREA,
+        "Layout / Canva document: 8.25 x 8.25 in (includes bleed). Ask ChatGPT for a 1:1 square image - exact match.",
+    ),
+    "KDP 6 x 9 in - portrait": (
+        "Portrait orientation, taller than wide, at a 2:3 width-to-height ratio. " + SAFE_AREA,
+        "Layout / Canva document: 6.25 x 9.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image - this trim matches it exactly.",
+    ),
+    "KDP 8 x 10 in - portrait": (
+        "Portrait orientation, taller than wide, near a 4:5 ratio. " + SAFE_AREA,
+        "Layout / Canva document: 8.25 x 10.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, then add thin side margins in layout - do not stretch it to fill.",
+    ),
+    "KDP 8.5 x 11 in - portrait (US Letter)": (
+        "Portrait orientation, tall, near a 3:4 ratio. " + SAFE_AREA,
+        "Layout / Canva document: 8.75 x 11.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, then add side margins in layout - do not stretch it to fill.",
+    ),
+    "Landscape 11 x 8.5 in - wide": (
+        "Landscape orientation, clearly wider than tall, near a 3:2 ratio. " + SAFE_AREA,
+        "Layout / Canva document: 11.25 x 8.75 in (includes bleed). Ask ChatGPT for a 3:2 landscape image.",
+    ),
 }
 
 LINE_ART_LOCK = (
@@ -596,9 +616,7 @@ if check_password():
         if has("pages"):
             style_menu.update(STYLE_BW_PRO)
 
-    shape_lookup = dict(BOOK_SHAPE_FE)
-    if has("pages"):
-        shape_lookup.update(BOOK_SHAPE_PRO)
+    shape_lookup = dict(BOOK_SHAPE)
 
     m1, m2 = st.columns(2)
     with m1:
@@ -625,12 +643,12 @@ if check_password():
             st.markdown("**Unlock more with the upgrades:**")
             if not has("pages"):
                 st.markdown(":lock: **OTO 1 - Coloring book.** The full story, told through the "
-                            "pictures with no text printed on the pages, plus 3 more art styles and "
-                            "exact KDP trim sizes. Also includes the Upscaler and the PDF Builder.")
+                            "pictures with no text printed on the pages, plus 3 more art styles. "
+                            "Also includes the Upscaler and the PDF Builder.")
             if not has("pro"):
                 st.markdown(":lock: **OTO 2 - Full-color storybooks.** Finished color illustrations "
-                            "instead of line art, plus 8 color art styles (watercolor, colored "
-                            "pencil, flat vector, papercut, vintage, kawaii, and more).")
+                            "instead of line art, plus 6 color art styles (watercolor, colored "
+                            "pencil, flat vector, papercut collage, kawaii chibi, and bold & simple).")
 
     tab1, tab2, tab3 = st.tabs(["Step 1 - Story", "Step 2 - Page prompts", "Step 3 - Covers"])
 
