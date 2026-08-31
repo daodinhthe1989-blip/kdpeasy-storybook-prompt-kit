@@ -1,6 +1,7 @@
 # KDPEasy Storybook Prompt Kit
 
-Part of the KDPEasy Suite - free/paid tools for KDP creators.
+Part of the KDPEasy Suite - free/paid tools for KDP creators. Targets children's books for
+**ages 4-8**.
 
 Builds ready-to-paste ChatGPT prompts for a full children's storybook: a complete narrative
 story split into 20-40 pages, plus a matching **full-color** front and back cover. The kit
@@ -10,23 +11,26 @@ ASCII so it survives a copy-paste into ChatGPT unchanged.
 
 ## Book type (3 modes)
 
-A radio at the top of the page. The three Steps below work the same for all three modes.
+Shown at the top. The radio lists only the modes the buyer owns (FE = one mode, shown as a
+label, no radio). Modes the buyer does not own appear below as greyed, non-clickable
+`st.caption` lines with a lock icon (Streamlit radio has no per-option disable). The three
+Steps below work the same for all three modes.
 
-| Mode | What it makes | Tier |
-|---|---|---|
-| Storybook - black & white, with text | line-art coloring storybook, story text printed on each page | FE |
-| Coloring book - has a story, NO text on the pages | same full story, but pages are illustration-only | OTO1 (`pages`) |
-| Storybook - full color, with text | finished color illustrations + printed text | OTO2 (`pro`) |
-
-A locked mode shows a `:lock:` prefix + the OTO name; picking it warns and falls back to
-mode 0. Internally each mode is `(color_mode, no_text)`: FE `(F,F)`, coloring `(F,T)`,
-color `(T,F)`.
+| Mode | What it makes | Tier | `(color_mode, no_text)` |
+|---|---|---|---|
+| Storybook - black & white, with text | line-art coloring storybook, story text printed on each page | FE | `(F, F)` |
+| Coloring book - has a story, NO text on the pages | same full story, pages are illustration-only | OTO1 (`pages`) | `(F, T)` |
+| Storybook - full color, with text | finished color illustrations + printed text | OTO2 (`pro`) | `(T, F)` |
 
 ## Style & size
 
-- **Illustration style** - FE: 2 B&W presets (Kids bold & simple / Adults clean & detailed).
-  OTO1 adds 3 more B&W presets (Fine ink detail, Chunky marker, Storybook classic). In the
-  full-color mode the menu is the 8 `STYLE_COLOR` presets instead.
+- **Illustration style** - FE: 1 B&W preset ("Bold & simple", for ages 4-8). Rendered as a
+  caption, not a dropdown, when it is the only option. OTO1 adds 3 more B&W presets
+  ("A little more detail" for 7-8s, "Chunky marker", "Storybook classic"). The full-color
+  mode replaces the menu with 6 `STYLE_COLOR` presets (Bold & simple, Soft watercolor,
+  Colored pencil, Flat vector, Papercut collage, Kawaii chibi). "Adults - clean & detailed"
+  and "Vintage midcentury" were removed 2026-08-31 - the kit is 4-8 only; standing rule is
+  to drop any adult-leaning style.
 - **Book size** - FE: Portrait / Square / Landscape (generic). OTO1 adds the exact KDP trims
   (8.5x8.5, 8x8, 6x9, 8x10, 8.5x11), each showing its Canva document size.
 
@@ -45,11 +49,11 @@ color `(T,F)`.
    is told it will not be printed on the pages.
 2. **Page prompts** - paste ChatGPT's whole reply back in (repeated page numbers after a
    `(continue)` are de-duped, later block wins). Outputs one image prompt per page + a bulk
-   `.txt`. With text: the story text is drawn onto the page and a "text position"
-   control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears. No-text mode: the page is illustration
-   only, the control is hidden, and the prompt hard-forbids any text/letters/numbers. B&W
-   pages carry `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`; color pages carry
-   `COLOR_INTERIOR_LOCK`. No page numbers (added at the PDF-layout stage).
+   `.txt`. With text: the story text is drawn onto the page and a "text position" control
+   (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears. No-text mode: the page is illustration only, the
+   control is hidden, and the prompt hard-forbids any text/letters/numbers. B&W pages carry
+   `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`; color pages carry `COLOR_INTERIOR_LOCK`.
+   No page numbers (added at the PDF-layout stage).
 3. **Cover prompts + KDP listing helper** - story summary + optional title / subtitle /
    author / brand / badge / character colors + cover type + title position. Outputs a
    full-color front-cover prompt and a full-color back-cover prompt (barcode-safe:
@@ -81,31 +85,33 @@ Step 2.
 
 ## Tiers (funnel) & passwords
 
-`PASSWORDS` maps each password to `{pages, pro, expires}`. Passwords stack - each is
-"everything up to this OTO".
+`PASSWORDS` maps each password to `{pages, pro, expires}`. **One password per product - it
+unlocks ONLY that product's mode. Not stacked.** The cart delivers each product's own
+password automatically. A buyer logs in with one password per session; the green banner
+shows what it unlocked. A buyer who owns both OTOs switches by logging in again with the
+other password (the automated cart can't tell who owns what, so no combo password and no
+in-app accumulation - decided 2026-08-30/31).
 
-| Password | Unlocks | Buyer |
+| Password | Unlocks | Delivered by |
 |---|---|---|
-| `KDPSTORY2026` | - | FE only |
-| `KDPSTORYPAGES2026` | pages | FE + OTO1 |
-| `KDPSTORYPRO2026` | pages + pro | FE + OTO1 + OTO2 |
-| `KDPSTORYMAX2026` | pages + pro | alias of PRO |
-| `KDPSTORYTRIAL2026` | - (FE, expires 2026-09-01) | 3-day free trial |
+| `KDPSTORY2026` | access only | FE |
+| `KDPSTORYPAGES2026` | `pages` | OTO1 |
+| `KDPSTORYPRO2026` | `pro` | OTO2 |
+| `KDPSTORYTRIAL2026` | access only, expires 2026-09-01 | 3-day free trial |
 
 Flags: **pages** = OTO1 (coloring-book mode + 3 extra B&W styles + KDP trims); **pro** =
-OTO2 (full-color mode + 8 color styles). If a buyer declined an earlier OTO, add a custom
-entry matching exactly what they own. `expires: None` = permanent; a `datetime.date` works
-up to and including that day.
+OTO2 (full-color mode + 6 color styles). `expires: None` = permanent; a `datetime.date`
+works up to and including that day.
 
 **Funnel:** FE $17 / OTO1 $27 (coloring-book mode + Upscaler + PDF Builder - the two tools
-are separate apps whose own passwords go on the OTO1 thank-you page) / OTO2 $37. Series was
-considered as an OTO3 and dropped for now (2026-08-30).
+are separate apps whose own passwords go on the OTO1 thank-you page; open question whether
+the Upscaler is still needed now the PDF Builder handles 300 DPI) / OTO2 $37. Series was
+considered as an OTO3 and dropped for now.
 
-**Upsell visibility for FE:** style/size dropdowns stay clean (FE options only). Below them
-a bordered "Unlock more with the upgrades:" panel shows one short locked line per upgrade
-the buyer lacks (OTO1 coloring-book mode + more styles + KDP trims + the two tools; OTO2
-full color + 8 styles). Locked modes also show in the Book-type radio with a lock prefix.
-Light gating, not DRM.
+**Upsell visibility for FE:** style/size stay clean (FE options only). Below them a bordered
+"Unlock more with the upgrades:" panel shows one short locked line per upgrade the buyer
+lacks. Locked modes also show under the Book-type radio as greyed caption lines. Light
+gating, not DRM.
 
 ## Stack
 
