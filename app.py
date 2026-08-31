@@ -708,12 +708,19 @@ if check_password():
 
     # ---------------- Step 3 ----------------
     with tab3:
-        summary = st.text_area("Story summary (paste the STORY CONCEPT text from Step 1's output)",
-                               height=90, key="cover_summary")
+        st.caption("This tab makes your front cover, back cover, and Amazon listing. Start by "
+                   "pasting your story summary just below.")
+        summary = st.text_area("Story summary", height=90, key="cover_summary")
+        st.caption("Go back to your Step 1 reply in ChatGPT. The very first part is labelled "
+                   "STORY CONCEPT - copy those 2 to 3 sentences and paste them in the box above. "
+                   "Everything else on this tab is optional.")
         title = st.text_input("Book title (leave blank to let ChatGPT name it from the summary)")
         subtitle = st.text_input("Subtitle (optional)")
         char_colors = st.text_input("Character colors (optional)",
                                     placeholder="russet-red fur, cream belly, forest-green scarf")
+        st.caption("Character colors: the covers are always full color even for a black-and-white "
+                   "book. Type the colors you want the character to be so the front and back "
+                   "match. Leave blank and ChatGPT picks.")
         c4, c5 = st.columns(2)
         with c4:
             author = st.text_input("Author line (optional)", placeholder="Written by Jane Doe")
@@ -725,6 +732,11 @@ if check_password():
             ctype_label = st.selectbox("Cover type", list(COVER_TYPES))
         with c7:
             tpos_label = st.selectbox("Title position", list(TITLE_POS))
+        st.caption("Cover type - AUTO: let ChatGPT choose. FULL SCENE: character inside a scene "
+                   "from the story's world. CHARACTER FOCUS: the character big and front-and-"
+                   "center on a simple background. GROUP SCENE: the main characters together. "
+                   "MINIMAL: one hero element and lots of empty space. If unsure, use AUTO or "
+                   "CHARACTER FOCUS.")
 
         if st.button("Build cover prompts", key="btn_covers"):
             extras = []
@@ -736,6 +748,10 @@ if check_password():
             front = build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
                                              summary, char_colors, shape_desc, cover_style)
             back = build_back_cover_prompt(summary, char_colors, cover_style, shape_desc)
+            st.success("Run these two prompts in your IMAGE chat (the same ChatGPT chat where "
+                       "you made the pages). If you start a fresh chat, upload one finished "
+                       "interior page first so the character matches. Front cover first, then "
+                       "back cover.")
             st.markdown("**FRONT COVER prompt**")
             st.code(front, language=None)
             st.markdown("**BACK COVER prompt**")
@@ -746,15 +762,21 @@ if check_password():
 
         st.divider()
         st.markdown("### KDP listing helper")
-        st.caption("A prompt that makes ChatGPT write your Amazon listing: the book "
-                   "description, 7 backend keywords, and 3 category suggestions.")
+        st.caption("Builds a prompt that makes ChatGPT write your whole Amazon listing at once: "
+                   "a book description, 7 backend keywords, and 3 category suggestions. Uses the "
+                   "story summary from the top of this tab.")
         kl_age = st.text_input("Age range for the listing", key="kl_age", placeholder="4-8")
+        st.caption("Age range: type it like \"4-8\" or \"3-7\".")
         kl_extra = st.text_input("Niche / angle words (optional)", key="kl_extra",
                                  placeholder="bedtime, animals, kindness")
         if st.button("Build KDP listing prompt", key="btn_kl"):
             if not summary.strip():
                 st.warning("Paste the story summary at the top of this tab first.")
             else:
+                st.success("Run this prompt in ChatGPT. Then, on your KDP 'Paperback Details' "
+                           "page: paste the DESCRIPTION into the Description box, put each of "
+                           "the 7 KEYWORDS in its own keyword slot, and use the 3 CATEGORIES "
+                           "when KDP asks you to choose categories.")
                 st.code(build_kdp_listing_prompt(summary, title, kl_age, kl_extra), language=None)
 
     st.markdown('</div>', unsafe_allow_html=True)
