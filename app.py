@@ -70,6 +70,20 @@ def has(feature: str) -> bool:
     return bool(st.session_state.get("tier", {}).get(feature))
 
 
+# Streamlit reruns the whole script on every click (including the download
+# buttons), which wipes anything rendered inside an `if st.button(...)` block -
+# trial users kept losing their built prompts. These stash the result keyed by
+# the inputs that produced it, so it keeps showing until an input actually
+# changes, and disappears cleanly when it does.
+def _stash(key, sig, value):
+    st.session_state[key] = (sig, value)
+
+
+def _recall(key, sig):
+    got = st.session_state.get(key)
+    return got[1] if got and got[0] == sig else None
+
+
 # ----------------------------------------------------------------------------
 # Shared building blocks. All text that ends up in a customer prompt is plain
 # ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
@@ -103,10 +117,17 @@ SAFE_AREA = ("Keep every important part of the picture - faces, the main charact
              "inside a centered safe area with wide, even margins on all four sides. Nothing that "
              "matters near the edges, so the art still fits when it is placed on the printed page "
              "even if the page proportion is a little different.")
+# For portrait trims that are NOT a clean 2:3 (8 x 10, 8.5 x 11): ChatGPT still makes a 2:3
+# image, so it has to be cropped shorter for the page. Padding top and bottom makes that safe.
+PORTRAIT_TRIM = ("Make this a 2:3 tall image, and keep the top 12 percent and the bottom 12 percent "
+                 "as near-empty background only - no faces, characters, or key objects in those "
+                 "bands - so the image can be cropped to a slightly shorter final page with nothing "
+                 "important lost.")
 BOOK_SHAPE = {
     "KDP 8.5 x 8.5 in - square (most popular)": (
         "Square 1:1 composition, equal width and height. " + SAFE_AREA,
-        "Layout / Canva document: 8.75 x 8.75 in (includes bleed). Ask ChatGPT for a 1:1 square image - exact match.",
+        "Layout / Canva document: 8.75 x 8.75 in (includes bleed). Ask ChatGPT for a 1:1 square image - "
+        "exact match. New to this? This is the easiest size to lay out - a good default.",
     ),
     "KDP 8 x 8 in - square": (
         "Square 1:1 composition, equal width and height. " + SAFE_AREA,
@@ -117,18 +138,27 @@ BOOK_SHAPE = {
         "Layout / Canva document: 6.25 x 9.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image - this trim matches it exactly.",
     ),
     "KDP 8 x 10 in - portrait": (
-        "Portrait orientation, taller than wide, near a 4:5 ratio. " + SAFE_AREA,
-        "Layout / Canva document: 8.25 x 10.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, then add thin side margins in layout - do not stretch it to fill.",
+        "Portrait orientation, taller than wide. " + SAFE_AREA + " " + PORTRAIT_TRIM,
+        "Layout / Canva document: 8.25 x 10.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, "
+        "then crop the top and bottom to fit your page - the empty bands make that safe. Do not stretch it.",
     ),
     "KDP 8.5 x 11 in - portrait (US Letter)": (
-        "Portrait orientation, tall, near a 3:4 ratio. " + SAFE_AREA,
-        "Layout / Canva document: 8.75 x 11.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, then add side margins in layout - do not stretch it to fill.",
+        "Portrait orientation, tall. " + SAFE_AREA + " " + PORTRAIT_TRIM,
+        "Layout / Canva document: 8.75 x 11.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, "
+        "then crop the top and bottom to fit your page - the empty bands make that safe. Do not stretch it.",
     ),
     "Landscape 11 x 8.5 in - wide": (
         "Landscape orientation, clearly wider than tall, near a 3:2 ratio. " + SAFE_AREA,
         "Layout / Canva document: 11.25 x 8.75 in (includes bleed). Ask ChatGPT for a 3:2 landscape image.",
     ),
 }
+
+# Story text on the page keeps drifting up into the top edge and printing too big
+# (trial feedback). This rule goes on every with-text page prompt.
+TEXT_SAFE = ("Keep a clear empty margin around the story text: at least 12 percent of the page in "
+             "from every edge, and the text must never touch or run off an edge. Keep the text small "
+             "and calm - it should sit inside its area with plenty of room left over. If in doubt, "
+             "make the text smaller, not larger.")
 
 LINE_ART_LOCK = (
     "Pure black-and-white COLORING PAGE line art only: solid black outlines on a pure white "
@@ -250,9 +280,13 @@ def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode
         "If your reply would be cut off before the last page, stop at a clean page boundary and end "
         "with a line that says exactly: (continue) - the customer will then ask you to continue.",
         "",
-        "Give the character a fixed visual identity (species, age look, body, face, distinctive features, "
-        "clothing, accessories) and keep it identical on every page. Only pose, expression, action, and "
-        "setting may change.",
+        "CHARACTER CONSISTENCY - split the character into two lists and keep them straight on every page:",
+        "  FROZEN (spell this out in full in the Character Bible; identical on every single page, never "
+        "changes): species or type, body shape and proportions, face shape and features, hair or fur, "
+        "skin or coat color, and the COMPLETE outfit and accessories - same garments, same colors, "
+        "nothing added, removed, or restyled from page to page.",
+        "  CHANGES EVERY PAGE (must feel fresh, never a copy of the previous page): pose and gesture, "
+        "facial expression, camera angle and distance, what the character is doing, and the background.",
         "",
         "OUTPUT IN THIS EXACT ORDER, with no commentary before or after:",
         "1) STORY CONCEPT - 2 to 3 sentences.",
@@ -284,7 +318,9 @@ def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode
          "medium, shading, shadows, lighting, mood, gray, or black areas in it - the global "
          "ART STYLE block above controls all of that."),
         "Planned " + style_word + " style for later, keep the directions compatible with it: " + style_desc + ".",
-        "The finished art will be " + shape_label + " - keep each scene composable in that shape.",
+        "The finished art will be " + shape_label + ". Compose each scene for that shape with generous "
+        "empty margins on every side, so nothing important is lost when the pages are placed in the "
+        "final book.",
     ]
     return "\n".join(lines)
 
@@ -354,7 +390,15 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
         lock = LINE_ART_LOCK
 
     lines = [head, ""]
-    lines += ["CHARACTER (must look identical on every page):", bible, ""]
+    lines += [
+        "CHARACTER - match the FROZEN details exactly (species or type, body shape, face, hair or "
+        "fur, colors, and the COMPLETE outfit and accessories) to the description below:",
+        bible,
+        ("Give THIS page its own fresh pose, gesture, facial expression, and camera angle that fit "
+         "this page's moment - do not reuse the pose or expression from an earlier page. Only the "
+         "frozen details stay identical."),
+        "",
+    ]
 
     if no_text:
         lines += [
@@ -365,13 +409,15 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
     else:
         text_line = ("Print this exact story text on the page in a clean, simple, child-friendly serif, "
                      + ("dark" if color_mode else "solid black") +
-                     ", generously spaced and easy to read: '" + story_text + "'")
+                     ", at a modest, comfortable reading size (not oversized), generously spaced and "
+                     "easy to read: '" + story_text + "'")
         lines += [
             "PAGE LAYOUT:",
             text_line,
             ("Place the story text across the " + text_area + ". Place the illustration in the " + illo_area +
              ". Let the illustration fade softly into the open page - no dividing line, no box or rectangle "
              "around the illustration, no full-bleed."),
+            TEXT_SAFE,
         ]
 
     lines += [
@@ -672,6 +718,7 @@ if check_password():
                    "round hedgehog in a flour-dusted apron\") and the prompt will keep it. If the "
                    "idea has no character, the AI invents one.")
 
+        sig_story = (idea, page_count, style_label, shape_label_full, color_mode, no_text)
         if st.button("Build Story prompt", key="btn_story"):
             if not idea.strip():
                 st.warning("Enter a story idea first.")
@@ -679,12 +726,16 @@ if check_password():
                 pcs = page_count.strip()
                 if pcs.isdigit() and not (20 <= int(pcs) <= 40):
                     st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
-                st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2 "
-                           "AND save it in a text file on your computer.")
-                _sp = build_story_prompt(idea, page_count, style_desc, shape_label_full, color_mode, no_text)
-                st.code(_sp, language=None)
-                st.download_button("Download story prompt (.txt)", data=_sp.encode("utf-8"),
-                                   file_name="storybook_story_prompt.txt", mime="text/plain")
+                _stash("out_story", sig_story,
+                       build_story_prompt(idea, page_count, style_desc, shape_label_full, color_mode, no_text))
+        _sp = _recall("out_story", sig_story)
+        if _sp:
+            st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2 "
+                       "AND save it in a text file on your computer.")
+            st.code(_sp, language=None)
+            st.download_button("Download story prompt (.txt)", data=_sp.encode("utf-8"),
+                               file_name="storybook_story_prompt.txt", mime="text/plain")
+            st.caption("Changed the idea or a setting above? Click **Build Story prompt** again to refresh this.")
 
     # ---------------- Step 2 ----------------
     with tab2:
@@ -696,6 +747,7 @@ if check_password():
         else:
             comp_label = st.selectbox("Story text position on the page", list(COMPOSITION))
 
+        sig_pages = (pasted, comp_label, style_label, shape_label_full, color_mode, no_text)
         if st.button("Build page prompts", key="btn_pages"):
             if not pasted.strip():
                 st.warning("Paste the story from Step 1 first.")
@@ -707,22 +759,27 @@ if check_password():
                              "the lines that look like '=== PAGE 01 ==='. If ChatGPT used a different "
                              "format, re-run the Step 1 prompt.")
                 else:
-                    if not bible:
-                        st.warning("No Character Bible block found in the paste - prompts will still "
-                                   "work, but double-check character consistency.")
-                    st.success("Built %d page prompt(s)." % len(pages))
                     out = []
                     for num, block in pages:
                         fields = {lbl: extract_field(block, lbl) for lbl in FIELD_LABELS}
                         p = build_page_prompt(num, fields, bible, comp_label, shape_desc, style_desc,
                                               color_mode, no_text)
                         out.append((num, p))
-                        st.markdown("**Page %02d**" % num)
-                        st.code(p, language=None)
-                    all_text = "\n\n\n".join("PAGE %02d\n%s" % (n, p) for n, p in out)
-                    st.download_button("Download all page prompts (.txt)",
-                                       data=all_text.encode("utf-8"),
-                                       file_name="storybook_page_prompts.txt", mime="text/plain")
+                    _stash("out_pages", sig_pages, {"pages": out, "has_bible": bool(bible)})
+        _pg = _recall("out_pages", sig_pages)
+        if _pg:
+            if not _pg["has_bible"]:
+                st.warning("No Character Bible block found in the paste - prompts will still work, but "
+                           "double-check character consistency.")
+            st.success("Built %d page prompt(s)." % len(_pg["pages"]))
+            for num, p in _pg["pages"]:
+                st.markdown("**Page %02d**" % num)
+                st.code(p, language=None)
+            all_text = "\n\n\n".join("PAGE %02d\n%s" % (n, p) for n, p in _pg["pages"])
+            st.download_button("Download all page prompts (.txt)",
+                               data=all_text.encode("utf-8"),
+                               file_name="storybook_page_prompts.txt", mime="text/plain")
+            st.caption("Changed a setting or the pasted story above? Click **Build page prompts** again to refresh.")
 
     # ---------------- Step 3 ----------------
     with tab3:
@@ -756,6 +813,8 @@ if check_password():
                    "MINIMAL: one hero element and lots of empty space. If unsure, use AUTO or "
                    "CHARACTER FOCUS.")
 
+        sig_cov = (summary, title, subtitle, char_colors, author, pub, badge, ctype_label, tpos_label,
+                   style_label, shape_label_full)
         if st.button("Build cover prompts", key="btn_covers"):
             extras = []
             if author.strip():
@@ -766,6 +825,10 @@ if check_password():
             front = build_front_cover_prompt(title, subtitle, extra_lines, badge, ctype_label, tpos_label,
                                              summary, char_colors, shape_desc, cover_style)
             back = build_back_cover_prompt(summary, char_colors, cover_style, shape_desc)
+            _stash("out_covers", sig_cov, (front, back))
+        _cov = _recall("out_covers", sig_cov)
+        if _cov:
+            front, back = _cov
             st.success("Run these two prompts in your IMAGE chat (the same ChatGPT chat where "
                        "you made the pages). If you start a fresh chat, upload one finished "
                        "interior page first so the character matches. Front cover first, then "
@@ -777,6 +840,7 @@ if check_password():
             both = "FRONT COVER\n" + front + "\n\n\nBACK COVER\n" + back
             st.download_button("Download both cover prompts (.txt)", data=both.encode("utf-8"),
                                file_name="storybook_cover_prompts.txt", mime="text/plain")
+            st.caption("Changed a field above? Click **Build cover prompts** again to refresh.")
 
         st.divider()
         st.markdown("### KDP listing helper")
@@ -787,14 +851,18 @@ if check_password():
         st.caption("Age range: type it like \"4-8\" or \"3-7\".")
         kl_extra = st.text_input("Niche / angle words (optional)", key="kl_extra",
                                  placeholder="bedtime, animals, kindness")
+        sig_kl = (summary, title, kl_age, kl_extra)
         if st.button("Build KDP listing prompt", key="btn_kl"):
             if not summary.strip():
                 st.warning("Paste the story summary at the top of this tab first.")
             else:
-                st.success("Run this prompt in ChatGPT. Then, on your KDP 'Paperback Details' "
-                           "page: paste the DESCRIPTION into the Description box, put each of "
-                           "the 7 KEYWORDS in its own keyword slot, and use the 3 CATEGORIES "
-                           "when KDP asks you to choose categories.")
-                st.code(build_kdp_listing_prompt(summary, title, kl_age, kl_extra), language=None)
+                _stash("out_listing", sig_kl, build_kdp_listing_prompt(summary, title, kl_age, kl_extra))
+        _kl = _recall("out_listing", sig_kl)
+        if _kl:
+            st.success("Run this prompt in ChatGPT. Then, on your KDP 'Paperback Details' "
+                       "page: paste the DESCRIPTION into the Description box, put each of "
+                       "the 7 KEYWORDS in its own keyword slot, and use the 3 CATEGORIES "
+                       "when KDP asks you to choose categories.")
+            st.code(_kl, language=None)
 
     st.markdown('</div>', unsafe_allow_html=True)
