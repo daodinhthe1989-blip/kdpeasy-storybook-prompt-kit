@@ -34,14 +34,16 @@ Steps below work the same for all three modes.
   to drop any adult-leaning style.
 - **Book size** - one shared list for every tier (`BOOK_SHAPE`, merged out of the old
   FE/OTO1 split 2026-08-31): six real KDP trims - 8.5x8.5, 8x8, 6x9, 8x10, 8.5x11, and
-  11x8.5 landscape. Each option's prompt states the true page ratio plus a centered
-  "safe area" rule (`SAFE_AREA`) so key art is never lost when the picture is dropped on
-  the page; each UI caption gives the layout/Canva doc size and which ratio to actually
-  ask ChatGPT for (it only renders 1:1, 2:3, 3:2 - 6x9 is the one exact portrait match).
-  8x10 and 8.5x11 are not a clean 2:3, so their prompts add `PORTRAIT_TRIM`: keep the top
-  and bottom 12% as empty background so the 2:3 image can be **cropped** (not letterboxed)
-  down to the shorter page with nothing lost. Page size is a basic need, and gating it
-  behind OTO1 was what made FE pages crop.
+  11x8.5 landscape. Each option's prompt **leads with the trim in inches** ("Printed at
+  8.5 x 11 inches - a tall portrait page. Ask ChatGPT for a tall portrait image.") plus the
+  shared `SAFE_AREA` centered-safe-area rule. ChatGPT's image tool only outputs 1:1, 2:3,
+  3:2, so a raw ratio number appears ONLY where a trim genuinely is one (1:1 for the two
+  squares, 2:3 for 6x9); everywhere else it just says "tall portrait" / "wide landscape".
+  8x10 and 8.5x11 are not a clean 2:3, so their prompts add "keep the top and bottom of the
+  image especially open (background only)" and their captions say to **crop** (not stretch,
+  not letterbox) the slightly-too-tall portrait down to the page. Rewrite 2026-08-31 (v3.1.1)
+  after anh flagged that picking 8.5x11 produced a prompt talking about "2:3". Page size is a
+  basic need, and gating it behind OTO1 was what made FE pages crop.
 
 ## The 3 steps
 
@@ -66,8 +68,10 @@ Steps below work the same for all three modes.
    `.txt`. Each page prompt repeats the FROZEN-match rule and asks for a **fresh pose /
    expression / camera angle for that page**. With text: the story text is drawn onto the
    page, a "text position" control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears, and `TEXT_SAFE`
-   forces a >=12% empty margin around the text plus a modest (never oversized) type size -
-   trial users reported text creeping into the top edge and printing too big. No-text mode:
+   keeps a >=10% empty margin so the text never touches an edge. The type size is set to a
+   **read-aloud size** (fill most of the text area over 2-4 lines) - v3.1 briefly told it to
+   shrink, one tester then found it too small, so v3.1.1 keeps the margin rule but drops the
+   shrink language. No-text mode:
    the page is illustration only, the control is hidden, and the prompt hard-forbids any
    text/letters/numbers. B&W pages carry `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`;
    color pages carry `COLOR_INTERIOR_LOCK`. No page numbers (added at the PDF-layout stage).
