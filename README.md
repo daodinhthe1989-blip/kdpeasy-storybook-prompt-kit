@@ -24,9 +24,10 @@ Steps below work the same for all three modes.
 
 ## Style & size
 
-- **Illustration style** - FE: 1 B&W preset ("Bold & simple", for ages 4-8). Rendered as a
-  caption, not a dropdown, when it is the only option. OTO1 adds 3 more B&W presets
-  ("A little more detail" for 7-8s, "Chunky marker", "Storybook classic"). The full-color
+- **Illustration style** - FE: 2 thick-line B&W presets ("Bold & simple", "Bold & rounded"),
+  for ages 4-8. (If a menu ever has a single option it renders as a caption, not a dropdown.)
+  OTO1 adds 3 more B&W presets ("A little more detail" for 7-8s, "Chunky marker", "Storybook
+  classic"). The full-color
   mode replaces the menu with 6 `STYLE_COLOR` presets (Bold & simple, Soft watercolor,
   Colored pencil, Flat vector, Papercut collage, Kawaii chibi). "Adults - clean & detailed"
   and "Vintage midcentury" were removed 2026-08-31 - the kit is 4-8 only; standing rule is
