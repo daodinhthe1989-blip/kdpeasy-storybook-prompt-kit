@@ -32,8 +32,16 @@ Steps below work the same for all three modes.
   Colored pencil, Flat vector, Papercut collage, Kawaii chibi). "Adults - clean & detailed"
   and "Vintage midcentury" were removed 2026-08-31 - the kit is 4-8 only; standing rule is
   to drop any adult-leaning style.
-- **Book size** - FE: Portrait / Square / Landscape (generic). OTO1 adds the exact KDP trims
-  (8.5x8.5, 8x8, 6x9, 8x10, 8.5x11), each showing its Canva document size.
+- **Book size** - one shared list for every tier (`BOOK_SHAPE`, merged out of the old
+  FE/OTO1 split 2026-08-31): six real KDP trims - 8.5x8.5, 8x8, 6x9, 8x10, 8.5x11, and
+  11x8.5 landscape. Each option's prompt states the true page ratio plus a centered
+  "safe area" rule (`SAFE_AREA`) so key art is never lost when the picture is dropped on
+  the page; each UI caption gives the layout/Canva doc size and which ratio to actually
+  ask ChatGPT for (it only renders 1:1, 2:3, 3:2 - 6x9 is the one exact portrait match).
+  8x10 and 8.5x11 are not a clean 2:3, so their prompts add `PORTRAIT_TRIM`: keep the top
+  and bottom 12% as empty background so the 2:3 image can be **cropped** (not letterboxed)
+  down to the shorter page with nothing lost. Page size is a basic need, and gating it
+  behind OTO1 was what made FE pages crop.
 
 ## The 3 steps
 
@@ -47,14 +55,22 @@ Steps below work the same for all three modes.
    count with real beats not padding, to end with `(continue)` if it will be cut off, and to
    keep each ILLUSTRATION DIRECTION a plain scene description (no rendering/shading words).
    In the no-text (coloring-book) mode, ChatGPT still writes a STORY TEXT line per page, but
-   is told it will not be printed on the pages.
+   is told it will not be printed on the pages. Character consistency is given as two explicit
+   lists: **FROZEN** (species, body, face, hair/fur, colors, and the complete outfit and
+   accessories - spelled out in the Character Bible, identical on every page) vs **CHANGES
+   EVERY PAGE** (pose, gesture, expression, camera angle, action, background). Added
+   2026-08-31 after trial feedback that outfits drifted and, separately, that poses/faces
+   came out identical page to page.
 2. **Page prompts** - paste ChatGPT's whole reply back in (repeated page numbers after a
    `(continue)` are de-duped, later block wins). Outputs one image prompt per page + a bulk
-   `.txt`. With text: the story text is drawn onto the page and a "text position" control
-   (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears. No-text mode: the page is illustration only, the
-   control is hidden, and the prompt hard-forbids any text/letters/numbers. B&W pages carry
-   `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`; color pages carry `COLOR_INTERIOR_LOCK`.
-   No page numbers (added at the PDF-layout stage).
+   `.txt`. Each page prompt repeats the FROZEN-match rule and asks for a **fresh pose /
+   expression / camera angle for that page**. With text: the story text is drawn onto the
+   page, a "text position" control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears, and `TEXT_SAFE`
+   forces a >=12% empty margin around the text plus a modest (never oversized) type size -
+   trial users reported text creeping into the top edge and printing too big. No-text mode:
+   the page is illustration only, the control is hidden, and the prompt hard-forbids any
+   text/letters/numbers. B&W pages carry `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`;
+   color pages carry `COLOR_INTERIOR_LOCK`. No page numbers (added at the PDF-layout stage).
 3. **Cover prompts + KDP listing helper** - story summary + optional title / subtitle /
    author / brand / badge / character colors + cover type + title position. Outputs a
    full-color front-cover prompt and a full-color back-cover prompt (barcode-safe:
@@ -80,9 +96,17 @@ page prompt and both cover prompts. All images in one chat keeps the character c
 with no reference upload. Generating images in the story chat makes the linework fade page
 to page. If an image chat gets too long, start a fresh one and upload a finished page first.
 The kit stops at the images - assemble them into a print-ready PDF elsewhere (that is also
-where page numbers go). **Nothing is saved** - a visible warning tells the customer to keep
-the ChatGPT story reply and the prompt `.txt` files; recovery is re-pasting the story into
-Step 2.
+where page numbers go). **Nothing is saved to disk** - a visible warning tells the customer
+to keep the ChatGPT story reply and the prompt `.txt` files; recovery is re-pasting the
+story into Step 2.
+
+Within a session, every built output (story prompt, page prompts, cover prompts, listing
+prompt) is stashed in `st.session_state` via `_stash` / `_recall`, keyed by the inputs that
+produced it. Streamlit reruns the whole script on any click - including the download
+buttons - so before this, clicking Download wiped the prompts off screen (a repeated trial
+complaint: "the tool disappeared"). Now the output stays visible until an input actually
+changes, then clears itself cleanly. A full browser refresh still clears everything (that is
+the "nothing is saved to disk" case).
 
 ## Tiers (funnel) & passwords
 
@@ -100,19 +124,20 @@ in-app accumulation - decided 2026-08-30/31).
 | `KDPSTORYPRO2026` | `pro` | OTO2 |
 | `KDPSTORYTRIAL2026` | access only, expires 2026-09-01 | 3-day free trial |
 
-Flags: **pages** = OTO1 (coloring-book mode + 3 extra B&W styles + KDP trims); **pro** =
-OTO2 (full-color mode + 6 color styles). `expires: None` = permanent; a `datetime.date`
-works up to and including that day.
+Flags: **pages** = OTO1 (coloring-book mode + 3 extra B&W styles); **pro** =
+OTO2 (full-color mode + 6 color styles). Book size is not gated - every tier gets all
+six KDP trims. `expires: None` = permanent; a `datetime.date` works up to and including
+that day.
 
 **Funnel:** FE $17 / OTO1 $27 (coloring-book mode + Upscaler + PDF Builder - the two tools
 are separate apps whose own passwords go on the OTO1 thank-you page; open question whether
 the Upscaler is still needed now the PDF Builder handles 300 DPI) / OTO2 $37. Series was
 considered as an OTO3 and dropped for now.
 
-**Upsell visibility for FE:** style/size stay clean (FE options only). Below them a bordered
-"Unlock more with the upgrades:" panel shows one short locked line per upgrade the buyer
-lacks. Locked modes also show under the Book-type radio as greyed caption lines. Light
-gating, not DRM.
+**Upsell visibility for FE:** the style menu stays clean (FE options only); book size is the
+full list for everyone. Below them a bordered "Unlock more with the upgrades:" panel shows
+one short locked line per upgrade the buyer lacks. Locked modes also show under the
+Book-type radio as greyed caption lines. Light gating, not DRM.
 
 ## Stack
 
