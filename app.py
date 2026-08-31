@@ -111,54 +111,46 @@ STYLE_COLOR = {
 }
 
 # Book size. One list for everyone - real KDP trims. First tuple item goes into
-# the prompts; second is a UI caption telling the customer the layout doc size
-# and which ratio to actually ask ChatGPT for (it only renders 1:1, 2:3, 3:2).
-SAFE_AREA = ("Keep every important part of the picture - faces, the main character, key objects - "
-             "inside a centered safe area with wide, even margins on all four sides. Nothing that "
-             "matters near the edges, so the art still fits when it is placed on the printed page "
-             "even if the page proportion is a little different.")
-# For portrait trims that are NOT a clean 2:3 (8 x 10, 8.5 x 11): ChatGPT still makes a 2:3
-# image, so it has to be cropped shorter for the page. Padding top and bottom makes that safe.
-PORTRAIT_TRIM = ("Make this a 2:3 tall image, and keep the top 12 percent and the bottom 12 percent "
-                 "as near-empty background only - no faces, characters, or key objects in those "
-                 "bands - so the image can be cropped to a slightly shorter final page with nothing "
-                 "important lost.")
+# the prompts and leads with the trim in inches (ChatGPT can't hit an arbitrary
+# ratio - only 1:1, 2:3, 3:2 - so ratio numbers appear only where a trim IS one
+# of those). Second tuple item is a UI caption: layout doc size + any crop note.
+SAFE_AREA = ("Keep faces, the main character, and every key object inside a centered safe area with "
+             "open, even margin on all four sides - nothing important near an edge - so nothing is "
+             "cropped when the image is placed on the printed page.")
 BOOK_SHAPE = {
     "KDP 8.5 x 8.5 in - square (most popular)": (
-        "Square 1:1 composition, equal width and height. " + SAFE_AREA,
-        "Layout / Canva document: 8.75 x 8.75 in (includes bleed). Ask ChatGPT for a 1:1 square image - "
-        "exact match. New to this? This is the easiest size to lay out - a good default.",
+        "Printed at 8.5 x 8.5 inches - a square page. Ask ChatGPT for a 1:1 square image. " + SAFE_AREA,
+        "Layout / Canva document: 8.75 x 8.75 in (with bleed). The easiest size to lay out - a good default if you are new.",
     ),
     "KDP 8 x 8 in - square": (
-        "Square 1:1 composition, equal width and height. " + SAFE_AREA,
-        "Layout / Canva document: 8.25 x 8.25 in (includes bleed). Ask ChatGPT for a 1:1 square image - exact match.",
+        "Printed at 8 x 8 inches - a square page. Ask ChatGPT for a 1:1 square image. " + SAFE_AREA,
+        "Layout / Canva document: 8.25 x 8.25 in (with bleed).",
     ),
     "KDP 6 x 9 in - portrait": (
-        "Portrait orientation, taller than wide, at a 2:3 width-to-height ratio. " + SAFE_AREA,
-        "Layout / Canva document: 6.25 x 9.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image - this trim matches it exactly.",
+        "Printed at 6 x 9 inches - a tall portrait page, exactly a 2:3 shape. Ask ChatGPT for a 2:3 portrait image. " + SAFE_AREA,
+        "Layout / Canva document: 6.25 x 9.25 in (with bleed). This trim matches ChatGPT's 2:3 image exactly - no trimming needed.",
     ),
     "KDP 8 x 10 in - portrait": (
-        "Portrait orientation, taller than wide. " + SAFE_AREA + " " + PORTRAIT_TRIM,
-        "Layout / Canva document: 8.25 x 10.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, "
-        "then crop the top and bottom to fit your page - the empty bands make that safe. Do not stretch it.",
+        "Printed at 8 x 10 inches - a tall portrait page. Ask ChatGPT for a tall portrait image. " + SAFE_AREA +
+        " Keep the top and bottom of the image especially open - background only - so it can be trimmed down to the 8 x 10 page with nothing important lost.",
+        "Layout / Canva document: 8.25 x 10.25 in (with bleed). ChatGPT's portrait image comes out a little taller than this page - crop the top and bottom to fit; do not stretch it.",
     ),
     "KDP 8.5 x 11 in - portrait (US Letter)": (
-        "Portrait orientation, tall. " + SAFE_AREA + " " + PORTRAIT_TRIM,
-        "Layout / Canva document: 8.75 x 11.25 in (includes bleed). Ask ChatGPT for a 2:3 portrait image, "
-        "then crop the top and bottom to fit your page - the empty bands make that safe. Do not stretch it.",
+        "Printed at 8.5 x 11 inches - a tall portrait page. Ask ChatGPT for a tall portrait image. " + SAFE_AREA +
+        " Keep the top and bottom of the image especially open - background only - so it can be trimmed down to the 8.5 x 11 page with nothing important lost.",
+        "Layout / Canva document: 8.75 x 11.25 in (with bleed). ChatGPT's portrait image comes out a little taller than this page - crop the top and bottom to fit; do not stretch it.",
     ),
     "Landscape 11 x 8.5 in - wide": (
-        "Landscape orientation, clearly wider than tall, near a 3:2 ratio. " + SAFE_AREA,
-        "Layout / Canva document: 11.25 x 8.75 in (includes bleed). Ask ChatGPT for a 3:2 landscape image.",
+        "Printed at 11 x 8.5 inches - a wide landscape page. Ask ChatGPT for a wide landscape image. " + SAFE_AREA,
+        "Layout / Canva document: 11.25 x 8.75 in (with bleed).",
     ),
 }
 
-# Story text on the page keeps drifting up into the top edge and printing too big
-# (trial feedback). This rule goes on every with-text page prompt.
-TEXT_SAFE = ("Keep a clear empty margin around the story text: at least 12 percent of the page in "
-             "from every edge, and the text must never touch or run off an edge. Keep the text small "
-             "and calm - it should sit inside its area with plenty of room left over. If in doubt, "
-             "make the text smaller, not larger.")
+# Story text placement: an edge margin (fixes text creeping into the top edge)
+# WITHOUT shrinking the type (a later tester said v3.1 had made it too small).
+TEXT_SAFE = ("Keep a clear empty margin around the story text - at least 10 percent of the page in "
+             "from every edge - and never let the text touch or run off an edge. Center the text "
+             "block within its area with a little breathing room above and below it.")
 
 LINE_ART_LOCK = (
     "Pure black-and-white COLORING PAGE line art only: solid black outlines on a pure white "
@@ -169,9 +161,8 @@ LINE_ART_LOCK = (
     "stippling, gradients, halftones, solid black fills, heavy ink areas, dark or black "
     "backgrounds, sketch or pencil or charcoal texture, painterly effects, or realistic "
     "lighting. "
-    "Lines clean and heavy enough to print sharply and to color inside. Do not crop the main "
-    "subject. Keep clear white margins on all four sides, nothing touching the edges. No "
-    "frame, no border, no rectangle around the artwork."
+    "Lines clean and heavy enough to print sharply and to color inside. No frame, no border, "
+    "and no rectangle drawn around the artwork."
 )
 
 COLORING_REMINDER = ("Remember: this is a clean black-and-white coloring page - black outlines "
@@ -180,8 +171,7 @@ COLORING_REMINDER = ("Remember: this is a clean black-and-white coloring page - 
 
 COLOR_INTERIOR_LOCK = (
     "Full color children's storybook illustration - bright, warm, and appealing, with a harmonious "
-    "palette and gentle shading. Clean, solid shapes. Do not crop the main subject. Keep clear "
-    "margins on all four sides, nothing touching the edges. No frame, no border, no rectangle "
+    "palette and gentle shading. Clean, solid shapes. No frame, no border, and no rectangle drawn "
     "around the artwork."
 )
 
@@ -409,8 +399,9 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
     else:
         text_line = ("Print this exact story text on the page in a clean, simple, child-friendly serif, "
                      + ("dark" if color_mode else "solid black") +
-                     ", at a modest, comfortable reading size (not oversized), generously spaced and "
-                     "easy to read: '" + story_text + "'")
+                     ", at a clear read-aloud size - big enough for a young child to follow along, "
+                     "sized to fill most of the text area across 2 to 4 well-spaced lines, but not so "
+                     "large it crowds the page edges: '" + story_text + "'")
         lines += [
             "PAGE LAYOUT:",
             text_line,
