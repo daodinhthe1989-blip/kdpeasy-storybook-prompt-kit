@@ -89,25 +89,31 @@ def _recall(key, sig):
 # ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
 # ----------------------------------------------------------------------------
 
-# INTERIOR line-art styles. The kit targets ages 4-8 - no "adult" detail level.
-# FE = 2 thick-line presets. OTO1 adds 3 more B&W presets.
+# INTERIOR line-art styles. The kit targets ages 4-8 - clean, simple, thick-line.
+# FE = 2 presets. OTO1 adds 3 more.
 STYLE_BW_FE = {
-    "Bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for children ages 4-8",
-    "Bold & rounded": "bold, thick outlines with every shape softly rounded and curved - friendly and cuddly, large simple shapes, very little fine detail, and big open areas to color; made for children ages 4-8",
+    "Bold & simple": ("thick, smooth, even black outlines; large chunky shapes; almost no small "
+                      "interior detail; wide open areas to color; the cleanest, simplest look"),
+    "Bold & rounded": ("thick, smooth, even black outlines with every shape gently rounded and "
+                       "cuddly; large chunky shapes; almost no small interior detail; wide open "
+                       "areas to color"),
 }
 STYLE_BW_PRO = {
-    "A little more detail": "clean, even, medium-weight outlines with a bit more detail and a few more elements per scene, still fully closed and easy for a 7-8 year old to color",
-    "Chunky marker": "very chunky, rounded marker-style outlines, huge simple shapes, almost no small detail; for the youngest hands",
-    "Storybook classic": "even classic pen linework with a calm, traditional storybook feel and balanced detail",
+    "A little more detail": ("clean, even, medium-weight outlines; a little more detail and a few "
+                             "more elements per scene, still simple and fully closed"),
+    "Chunky marker": ("very thick, rounded marker-style outlines; huge simple shapes; almost no "
+                      "small detail; for the youngest hands"),
+    "Storybook classic": ("even, calm pen linework with a traditional storybook feel and gently "
+                          "balanced detail; still clean and fully closed"),
 }
-# INTERIOR full-color styles - only reachable in the full-color mode (OTO2).
+# INTERIOR full-color styles - only in the full-color mode (OTO2).
 STYLE_COLOR = {
-    "Bold & simple": "bright, bold, cheerful full-color art: thick clean outlines, simple punchy shapes, flat lively color",
-    "Soft watercolor": "gentle watercolor storybook illustration with soft edges and a warm, light palette",
-    "Colored pencil": "colored-pencil illustration with visible strokes, cozy and handmade",
-    "Flat vector": "clean flat vector illustration with bold shapes and a bright, limited palette",
-    "Papercut collage": "layered papercut and collage look with simple shapes and a soft paper texture",
-    "Kawaii chibi": "cute kawaii chibi style with rounded shapes, big friendly eyes, and soft pastel color",
+    "Bold & simple": "bright, bold, cheerful color: thick clean outlines, simple punchy shapes, flat lively color",
+    "Soft watercolor": "gentle watercolor with soft edges and a warm, light palette",
+    "Colored pencil": "colored-pencil look with visible strokes, cozy and handmade",
+    "Flat vector": "clean flat vector shapes in a bright, limited palette",
+    "Papercut collage": "layered papercut and collage shapes with a soft paper texture",
+    "Kawaii chibi": "cute kawaii chibi style: rounded shapes, big friendly eyes, soft pastel color",
 }
 
 # Book size. One list for everyone - real KDP trims. First tuple item goes into
@@ -119,66 +125,61 @@ SAFE_AREA = ("Keep faces, the main character, and every key object inside a cent
              "cropped when the image is placed on the printed page.")
 BOOK_SHAPE = {
     "KDP 8.5 x 8.5 in - square (most popular)": (
-        "Printed at 8.5 x 8.5 inches - a square page. Ask ChatGPT for a 1:1 square image. " + SAFE_AREA,
+        "Printed at 8.5 x 8.5 inches - a square page. Make it a 1:1 square image. " + SAFE_AREA,
         "Layout / Canva document: 8.75 x 8.75 in (with bleed). The easiest size to lay out - a good default if you are new.",
     ),
     "KDP 8 x 8 in - square": (
-        "Printed at 8 x 8 inches - a square page. Ask ChatGPT for a 1:1 square image. " + SAFE_AREA,
+        "Printed at 8 x 8 inches - a square page. Make it a 1:1 square image. " + SAFE_AREA,
         "Layout / Canva document: 8.25 x 8.25 in (with bleed).",
     ),
     "KDP 6 x 9 in - portrait": (
-        "Printed at 6 x 9 inches - a tall portrait page, exactly a 2:3 shape. Ask ChatGPT for a 2:3 portrait image. " + SAFE_AREA,
+        "Printed at 6 x 9 inches - a tall portrait page, exactly a 2:3 shape. Make it a 2:3 portrait image. " + SAFE_AREA,
         "Layout / Canva document: 6.25 x 9.25 in (with bleed). This trim matches ChatGPT's 2:3 image exactly - no trimming needed.",
     ),
     "KDP 8 x 10 in - portrait": (
-        "Printed at 8 x 10 inches - a tall portrait page. Ask ChatGPT for a tall portrait image. " + SAFE_AREA +
-        " Keep the top and bottom of the image especially open - background only - so it can be trimmed down to the 8 x 10 page with nothing important lost.",
+        "Printed at 8 x 10 inches - a tall portrait page. Make it a tall portrait image. " + SAFE_AREA +
+        " Keep the top and bottom especially open - background only - so it can be trimmed to the 8 x 10 page with nothing important lost.",
         "Layout / Canva document: 8.25 x 10.25 in (with bleed). ChatGPT's portrait image comes out a little taller than this page - crop the top and bottom to fit; do not stretch it.",
     ),
     "KDP 8.5 x 11 in - portrait (US Letter)": (
-        "Printed at 8.5 x 11 inches - a tall portrait page. Ask ChatGPT for a tall portrait image. " + SAFE_AREA +
-        " Keep the top and bottom of the image especially open - background only - so it can be trimmed down to the 8.5 x 11 page with nothing important lost.",
+        "Printed at 8.5 x 11 inches - a tall portrait page. Make it a tall portrait image. " + SAFE_AREA +
+        " Keep the top and bottom especially open - background only - so it can be trimmed to the 8.5 x 11 page with nothing important lost.",
         "Layout / Canva document: 8.75 x 11.25 in (with bleed). ChatGPT's portrait image comes out a little taller than this page - crop the top and bottom to fit; do not stretch it.",
     ),
     "Landscape 11 x 8.5 in - wide": (
-        "Printed at 11 x 8.5 inches - a wide landscape page. Ask ChatGPT for a wide landscape image. " + SAFE_AREA,
+        "Printed at 11 x 8.5 inches - a wide landscape page. Make it a wide landscape image. " + SAFE_AREA,
         "Layout / Canva document: 11.25 x 8.75 in (with bleed).",
     ),
 }
 
-# Story text placement: an edge margin (fixes text creeping into the top edge)
-# WITHOUT shrinking the type (a later tester said v3.1 had made it too small).
+# Story text placement: an edge margin (fixes text creeping into the edge) without shrinking
+# the type (a tester said the earlier "make it smaller" wording went too far).
 TEXT_SAFE = ("Keep a clear empty margin around the story text - at least 10 percent of the page in "
-             "from every edge - and never let the text touch or run off an edge. Center the text "
-             "block within its area with a little breathing room above and below it.")
+             "from every edge - and never let it touch or run off an edge. Center the text block in "
+             "its area with a little breathing room above and below.")
 
+# One clean line-art spec, used in the Step 1 ART STYLE block and every Step 2 page prompt.
+# Bans the detail creep (fur / wood-grain / fabric texture, hatching, scribbled ground lines,
+# sparkle marks, busy backgrounds) alongside the older grey / shading problem.
 LINE_ART_LOCK = (
-    "Pure black-and-white COLORING PAGE line art only: solid black outlines on a pure white "
-    "background. Every line the same solid, even black weight - no thick-and-thin variation, "
-    "no faint or gray lines, no sketchy, broken, or doubled lines. All shapes fully closed, "
-    "with open white areas inside every shape for coloring. "
-    "ABSOLUTELY NO: color, grayscale, gray tones, shading, shadows, hatching, crosshatching, "
-    "stippling, gradients, halftones, solid black fills, heavy ink areas, dark or black "
-    "backgrounds, sketch or pencil or charcoal texture, painterly effects, or realistic "
-    "lighting. "
-    "Lines clean and heavy enough to print sharply and to color inside. No frame, no border, "
-    "and no rectangle drawn around the artwork."
+    "Clean black-and-white coloring-book line art. Bold, smooth black outlines of one even weight "
+    "on a pure white background. Big, simple shapes with generous open white space inside every "
+    "one. Keep it uncluttered: no color, no gray, no shading or shadows, no hatching or "
+    "crosshatching, no stippling or dot texture, no solid black fills, no fur, hair, wood-grain, "
+    "or fabric texture, no scribbled ground lines, no sparkle or motion marks, no busy background. "
+    "Every shape fully closed. No frame, border, or panel around the drawing."
 )
 
-COLORING_REMINDER = ("Remember: this is a clean black-and-white coloring page - black outlines "
-                     "only, pure white background, no shading, no gray, no filled areas, open "
-                     "white spaces to color.")
-
 COLOR_INTERIOR_LOCK = (
-    "Full color children's storybook illustration - bright, warm, and appealing, with a harmonious "
-    "palette and gentle shading. Clean, solid shapes. No frame, no border, and no rectangle drawn "
-    "around the artwork."
+    "Clean full-color children's storybook illustration. Bright, warm, and friendly, with flat or "
+    "lightly shaded color and clear, simple shapes. Keep it uncluttered - a few large elements, "
+    "not a busy scene. No frame, border, or panel around the drawing."
 )
 
 COLOR_COVER_LOCK = (
-    "Full color, professionally finished children's book cover art - bright, appealing, and warm, "
-    "with a harmonious palette and good contrast. This is NOT black and white and NOT a coloring page. "
-    "Keep clear margins; no important element touching the edges; no frame or border."
+    "Full-color, professionally finished children's book cover art - bright, warm, and appealing, "
+    "with good contrast and a clean, uncluttered composition. Not black and white, not a coloring "
+    "page. Keep important elements clear of the edges. No frame or border."
 )
 
 COMPOSITION = {
@@ -221,97 +222,84 @@ def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode
     pc = page_count_raw.strip()
     if pc.isdigit():
         n = max(20, min(40, int(pc)))
-        pc_line = "Aim for exactly %d story pages. Hit this number as closely as you can." % n
+        pc_line = "Aim for exactly %d story pages (the book must have between 20 and 40)." % n
     else:
-        pc_line = ("Choose a good length, normally 24 to 32 story pages. Never fewer than 20 and "
-                   "never more than 40.")
+        pc_line = "Choose a length between 24 and 32 story pages (never fewer than 20, never more than 40)."
 
-    if color_mode:
-        medium = "Every page will be drawn as a full-color storybook illustration."
-        dir_note = "what to draw, including colors, light, and mood"
-        style_word = "art"
-    else:
-        medium = "Every page will be drawn as black-and-white line art for kids to color."
-        dir_note = ("what to draw, described so it works as open black-and-white coloring line art - "
-                    "no color words, no shading words")
-        style_word = "drawing"
-    if no_text:
-        medium += (" The story text will NOT be printed on the pages - the story is told through the "
-                   "pictures - but still write a STORY TEXT line for every page (the customer may read "
-                   "it aloud or place it elsewhere).")
-
-    char_line = ("If the story idea already names or describes a character, use exactly that "
-                 "character and fill in the rest of its look yourself. Otherwise, create a "
-                 "fitting main character.")
+    medium = ("Each page will become a full-color storybook illustration." if color_mode
+              else "Each page will become a black-and-white line-art coloring page.")
+    dir_note = ("a plain description of what happens in the scene - the character's pose and action, "
+                "the setting, and a few key objects")
 
     lines = [
-        "You are a children's storybook author and illustration director.",
-        "Turn the story idea below into a complete, production-ready children's storybook. " + medium,
+        "You are a children's storybook author and illustration director. Turn the idea below into "
+        "a complete, ready-to-illustrate picture book for children ages 4-8. " + medium,
         "",
-        "STORY IDEA: " + idea.strip(),
-        "PAGES: " + pc_line,
-        "CHARACTER: " + char_line,
+        "IDEA: " + idea.strip(),
         "",
-        "Write in natural, simple, warm, child-friendly English with short sentences. "
-        "Tell one clear story with a beginning, a middle event or discovery, and a satisfying ending. "
-        "Follow the customer's story idea closely - keep the characters, setting, events, and ending "
-        "they describe. If the idea is only a short line, invent the rest in the same spirit. Either "
-        "way keep the story coherent and on-topic: every page belongs to this one story.",
+        "STORY",
+        "Write warm, simple English in short sentences. Tell one clear story with a beginning, a "
+        "middle turn, and a satisfying ending. Stay close to the idea above - keep its characters, "
+        "setting, events, and ending; if the idea is only a line, invent the rest in the same "
+        "spirit. Every page belongs to this one story.",
+        pc_line + " Reach the length with real beats - one action, discovery, or feeling per page - "
+        "not by repeating scenes or padding. If the idea is too small for the target, get as close "
+        "as you can and say so in one line.",
+        "If the reply would be cut off before the last page, stop at a clean page boundary and write "
+        "exactly: (continue)",
+    ]
+    if no_text:
+        lines += [
+            "",
+            "The story text will not be printed on the pages (the pictures carry the story), but "
+            "still write a STORY TEXT line for every page.",
+        ]
+    lines += [
         "",
-        "The book must have at least 20 and at most 40 story pages.",
+        "CHARACTER",
+        "Give the main character one fixed identity and keep it identical on every page: species or "
+        "type, body shape and proportions, face, hair or fur, colors, and the complete outfit and "
+        "accessories - nothing added, dropped, or restyled between pages. Only the pose, gesture, "
+        "expression, camera angle, action, and background change from page to page. If the idea "
+        "names a character, use it and fill in the rest; otherwise create one that fits.",
         "",
-        "How to reach the page count: break the story into more, smaller beats - one action, "
-        "discovery, feeling, or step of the journey per page - and let secondary characters and each "
-        "stop along the way have their own page. Do NOT reach the count by repeating scenes, "
-        "restating the same idea, or adding events the idea does not support. If the idea is genuinely "
-        "too small for the target number, get as close as you can with real beats, then say so in one "
-        "short line.",
+        "ART & SCENES",
+        "Planned look: " + style_desc.strip().rstrip(".") + ". The full style spec goes in the ART "
+        "STYLE block below.",
+        "Keep every scene simple - one main action and a few large elements over an open, "
+        "uncluttered background. The finished art is " + shape_label + "; compose each scene for "
+        "that shape with room to spare on every side.",
         "",
-        "If your reply would be cut off before the last page, stop at a clean page boundary and end "
-        "with a line that says exactly: (continue) - the customer will then ask you to continue.",
-        "",
-        "CHARACTER CONSISTENCY - split the character into two lists and keep them straight on every page:",
-        "  FROZEN (spell this out in full in the Character Bible; identical on every single page, never "
-        "changes): species or type, body shape and proportions, face shape and features, hair or fur, "
-        "skin or coat color, and the COMPLETE outfit and accessories - same garments, same colors, "
-        "nothing added, removed, or restyled from page to page.",
-        "  CHANGES EVERY PAGE (must feel fresh, never a copy of the previous page): pose and gesture, "
-        "facial expression, camera angle and distance, what the character is doing, and the background.",
-        "",
-        "OUTPUT IN THIS EXACT ORDER, with no commentary before or after:",
+        "OUTPUT - exactly this, in this order, with nothing else added:",
         "1) STORY CONCEPT - 2 to 3 sentences.",
-        "2) The Character Bible, wrapped exactly like this:",
+        "2) The character sheet, wrapped exactly:",
         "=== CHARACTER BIBLE START ===",
-        "<all the fixed character details>",
+        "<every fixed character detail, spelled out in full>",
         "=== CHARACTER BIBLE END ===",
-        "3) The global art style, wrapped exactly like this:",
+        "3) The art style, wrapped exactly:",
         "=== ART STYLE START ===",
         (COLOR_INTERIOR_LOCK if color_mode else LINE_ART_LOCK),
         "=== ART STYLE END ===",
         "4) TOTAL PAGE COUNT - a single number.",
         "5) STORY ARC - 3 to 5 short lines.",
-        "6) The page-by-page plan. Output EVERY page in EXACTLY this format and nothing else between pages:",
+        "6) The page-by-page plan. Every page in exactly this format, nothing between pages:",
         "",
         "=== PAGE 01 ===",
         "STORY TEXT: <the 1-2 short sentences for this page>",
         "STORY SCENE: <the single central story moment on this page>",
-        "ILLUSTRATION TYPE: <DEFAULT for a quiet establishing page, or THEME for a key event page>",
+        "ILLUSTRATION TYPE: <DEFAULT for a calm page, or THEME for a key event>",
         "ILLUSTRATION DIRECTION: <" + dir_note + ">",
         "=== PAGE 02 ===",
-        "STORY TEXT: ...",
-        "(continue for every page, page numbers always two digits: 01, 02, 03 ...)",
+        "...",
+        "(page numbers always two digits: 01, 02, 03 ...)",
         "",
-        "Keep ILLUSTRATION DIRECTION consistent with the story - never introduce objects, places, or "
+        "Keep every ILLUSTRATION DIRECTION true to the story - never add objects, places, or "
         "characters the story does not mention.",
-        ("Write each ILLUSTRATION DIRECTION as a plain description of WHAT is in the scene "
-         "(character pose, action, setting, props). Do NOT put any words about rendering, "
-         "medium, shading, shadows, lighting, mood, gray, or black areas in it - the global "
-         "ART STYLE block above controls all of that."),
-        "Planned " + style_word + " style for later, keep the directions compatible with it: " + style_desc + ".",
-        "The finished art will be " + shape_label + ". Compose each scene for that shape with generous "
-        "empty margins on every side, so nothing important is lost when the pages are placed in the "
-        "final book.",
     ]
+    if not color_mode:
+        lines.append("Keep each ILLUSTRATION DIRECTION a plain scene description with no words about "
+                     "rendering, medium, shading, lighting, or mood - the ART STYLE block controls "
+                     "the look.")
     return "\n".join(lines)
 
 
@@ -364,74 +352,67 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
     illo_type = (fields.get("ILLUSTRATION TYPE") or "").upper()
     illo_dir = fields.get("ILLUSTRATION DIRECTION") or story_scene or "(see the story scene for this page)"
 
-    if "THEME" in illo_type:
-        type_note = "This is a key story moment - give the illustration more detail, action, and energy."
-    else:
-        type_note = "This is a calmer establishing page - keep the illustration simple and open."
+    beat = ("This is a key moment - a little more action and energy, still simple and uncluttered."
+            if "THEME" in illo_type else
+            "This is a calm page - keep it especially simple and open.")
 
-    bible = char_bible.strip() or ("(match the character exactly to your other pages: same species, age, "
-                                   "face, clothing, and accessories)")
+    bible = char_bible.strip() or ("(no character sheet found - match the character exactly to your "
+                                   "other pages: same species, body, face, colors, and outfit)")
 
     if color_mode:
-        head = "Full color illustration for a single interior page of a children's storybook. " + shape_desc
-        lock = COLOR_INTERIOR_LOCK
+        opening = "Create a clean full-color illustration for one interior page of a children's storybook, ages 4-8."
+        style_lock, ink = COLOR_INTERIOR_LOCK, "dark"
     else:
-        head = "Black and white line art for a single interior page of a children's coloring storybook. " + shape_desc
-        lock = LINE_ART_LOCK
+        opening = "Create a clean black-and-white line-art coloring page for a children's storybook, ages 4-8."
+        style_lock, ink = LINE_ART_LOCK, "solid black"
 
-    lines = [head, ""]
-    lines += [
-        "CHARACTER - match the FROZEN details exactly (species or type, body shape, face, hair or "
-        "fur, colors, and the COMPLETE outfit and accessories) to the description below:",
-        bible,
-        ("Give THIS page its own fresh pose, gesture, facial expression, and camera angle that fit "
-         "this page's moment - do not reuse the pose or expression from an earlier page. Only the "
-         "frozen details stay identical."),
+    lines = [
+        opening,
+        shape_desc,
+        "Work only from the text in this brief - no uploaded reference picture is needed.",
         "",
+        "STYLE",
+        style_lock,
+        "Preset: " + style_desc.strip().rstrip(".") + ".",
+        "",
+        "CHARACTER - keep every fixed detail identical to this description:",
+        bible,
+        "On this page, give the character a fresh pose, gesture, expression, and camera angle that "
+        "suit the moment below. Do not copy or reuse an earlier page's pose. Nothing else about the "
+        "character changes.",
+        "",
+        "SCENE",
+        illo_dir,
     ]
-
+    if story_scene:
+        lines.append("Central moment: " + story_scene.rstrip(".") + ".")
+    lines += [
+        "Keep the scene simple: one clear main action and only a few large elements over an open, "
+        "uncluttered background. " + beat,
+        "",
+        "PAGE LAYOUT",
+    ]
     if no_text:
-        lines += [
-            "PAGE LAYOUT:",
-            ("Fill the page with just the illustration. There is NO story text and NO page number "
-             "anywhere on this page - it is an illustration only."),
-        ]
+        lines.append("Illustration only - no printed story text and no page number anywhere. The "
+                     "picture fills the page.")
     else:
-        text_line = ("Print this exact story text on the page in a clean, simple, child-friendly serif, "
-                     + ("dark" if color_mode else "solid black") +
-                     ", at a clear read-aloud size - big enough for a young child to follow along, "
-                     "sized to fill most of the text area across 2 to 4 well-spaced lines, but not so "
-                     "large it crowds the page edges: '" + story_text + "'")
         lines += [
-            "PAGE LAYOUT:",
-            text_line,
-            ("Place the story text across the " + text_area + ". Place the illustration in the " + illo_area +
-             ". Let the illustration fade softly into the open page - no dividing line, no box or rectangle "
-             "around the illustration, no full-bleed."),
+            "Print this exact line in a clean, child-friendly serif, " + ink + ", at a comfortable "
+            "read-aloud size (filling most of its area over 2 to 4 well-spaced lines, never crowding "
+            "the edges): '" + story_text + "'",
+            "Put the text across the " + text_area + " and the illustration in the " + illo_area +
+            ", the art fading softly into the open white - no dividing line, no panel or box around it.",
             TEXT_SAFE,
         ]
-
-    lines += [
-        "",
-        "ILLUSTRATION FOR THIS PAGE:",
-        illo_dir,
-        ("Central moment: " + story_scene) if story_scene else None,
-        type_note,
-        (None if color_mode else COLORING_REMINDER),
-        "",
-        "STYLE: " + style_desc + ".",
-        lock,
-    ]
-
+    lines.append("")
     if no_text:
-        lines.append("Do NOT add ANY text, letters, numbers, words, title, caption, speech bubble, "
-                     "label, page number, or signature anywhere on the page. Do not add characters "
-                     "or objects that are not part of this page's story.")
+        lines.append("Do not add any text, letters, numbers, title, caption, speech bubble, label, "
+                     "page number, or signature anywhere. Do not add characters or objects not named "
+                     "in the scene above.")
     else:
-        lines.append("Do not add a page number. Do not add any words, title, caption, speech bubble, "
-                     "label, or signature other than the story text above. Do not add characters or "
-                     "objects that are not part of this page's story.")
-    return "\n".join(l for l in lines if l is not None)
+        lines.append("Do not add a page number, title, caption, speech bubble, label, or signature - "
+                     "only the line above. Do not add characters or objects not named in the scene above.")
+    return "\n".join(lines)
 
 
 # ----------------------------------------------------------------------------
