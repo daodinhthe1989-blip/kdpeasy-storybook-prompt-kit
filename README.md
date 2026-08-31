@@ -24,14 +24,15 @@ Steps below work the same for all three modes.
 
 ## Style & size
 
-- **Illustration style** - FE: 2 thick-line B&W presets ("Bold & simple", "Bold & rounded"),
-  for ages 4-8. (If a menu ever has a single option it renders as a caption, not a dropdown.)
-  OTO1 adds 3 more B&W presets ("A little more detail" for 7-8s, "Chunky marker", "Storybook
-  classic"). The full-color
-  mode replaces the menu with 6 `STYLE_COLOR` presets (Bold & simple, Soft watercolor,
-  Colored pencil, Flat vector, Papercut collage, Kawaii chibi). "Adults - clean & detailed"
-  and "Vintage midcentury" were removed 2026-08-31 - the kit is 4-8 only; standing rule is
-  to drop any adult-leaning style.
+- **Illustration style** - FE: 2 B&W presets ("Bold & simple" - the cleanest, thickest-line,
+  least-detail look - and "Bold & rounded"). OTO1 adds 3 more ("A little more detail" for
+  7-8s, "Chunky marker", "Storybook classic"). The full-color mode replaces the menu with 6
+  `STYLE_COLOR` presets (Bold & simple, Soft watercolor, Colored pencil, Flat vector,
+  Papercut collage, Kawaii chibi). "Adults - clean & detailed" and "Vintage midcentury" were
+  removed 2026-08-31 - the kit is 4-8 only; standing rule is to drop any adult-leaning style.
+  v3.2 (2026-08-31): every style string was rewritten shorter and cleaner, and the shared
+  line-art spec now explicitly bans detail creep (see Line-art spec below) after anh compared
+  a busy output to the original clean Pip test.
 - **Book size** - one shared list for every tier (`BOOK_SHAPE`, merged out of the old
   FE/OTO1 split 2026-08-31): six real KDP trims - 8.5x8.5, 8x8, 6x9, 8x10, 8.5x11, and
   11x8.5 landscape. Each option's prompt **leads with the trim in inches** ("Printed at
@@ -45,36 +46,34 @@ Steps below work the same for all three modes.
   after anh flagged that picking 8.5x11 produced a prompt talking about "2:3". Page size is a
   basic need, and gating it behind OTO1 was what made FE pages crop.
 
-## The 3 steps
+All prompts were rewritten in v3.2 (2026-08-31) as clean, sectioned briefs - customers read
+them closely, and the previous versions had grown a visible pile of patch clauses. Each
+prompt is now half the length of the v3.1 one and reads professionally.
 
-1. **Story** - a story idea (one line or a detailed paragraph) + optional page count. The
-   character comes from the idea text; if there is none the AI invents one. Books are always
-   **20-40 pages** (blank = AI picks ~24-32; a number is clamped). Output is one big ChatGPT
-   prompt that produces: a Story Concept, a Character Bible (`=== CHARACTER BIBLE START/END
-   ===`), a global `=== ART STYLE START/END ===` block, total page count, story arc, and a
-   page-by-page plan (`=== PAGE 01 ===` markers, each page = STORY TEXT / STORY SCENE /
-   ILLUSTRATION TYPE / ILLUSTRATION DIRECTION). The prompt tells ChatGPT to reach the page
-   count with real beats not padding, to end with `(continue)` if it will be cut off, and to
-   keep each ILLUSTRATION DIRECTION a plain scene description (no rendering/shading words).
-   In the no-text (coloring-book) mode, ChatGPT still writes a STORY TEXT line per page, but
-   is told it will not be printed on the pages. Character consistency is given as two explicit
-   lists: **FROZEN** (species, body, face, hair/fur, colors, and the complete outfit and
-   accessories - spelled out in the Character Bible, identical on every page) vs **CHANGES
-   EVERY PAGE** (pose, gesture, expression, camera angle, action, background). Added
-   2026-08-31 after trial feedback that outfits drifted and, separately, that poses/faces
-   came out identical page to page.
+1. **Story** - a story idea (one line or a detailed paragraph) + optional page count. Books
+   are always **20-40 pages** (blank = 24-32; a number is clamped). Output is one ChatGPT
+   prompt, laid out as sections (STORY / CHARACTER / ART & SCENES / OUTPUT), that makes
+   ChatGPT produce: a Story Concept, a Character Bible (`=== CHARACTER BIBLE START/END ===`),
+   an `=== ART STYLE START/END ===` block, total page count, story arc, and a page-by-page
+   plan (`=== PAGE 01 ===` markers; each page = STORY TEXT / STORY SCENE / ILLUSTRATION TYPE
+   / ILLUSTRATION DIRECTION). It tells ChatGPT to reach the count with real beats, to end
+   with `(continue)` if cut off, to **keep every scene simple - one main action, a few large
+   elements, an open background**, and (B&W only) to keep each ILLUSTRATION DIRECTION a plain
+   scene description with no rendering/shading words. Character consistency: one fixed
+   identity (species, body, face, hair/fur, colors, and the *complete* outfit and
+   accessories) kept identical on every page; only pose, gesture, expression, camera angle,
+   action, and background change. In no-text mode ChatGPT still writes a STORY TEXT line per
+   page, just not printed.
 2. **Page prompts** - paste ChatGPT's whole reply back in (repeated page numbers after a
    `(continue)` are de-duped, later block wins). Outputs one image prompt per page + a bulk
-   `.txt`. Each page prompt repeats the FROZEN-match rule and asks for a **fresh pose /
-   expression / camera angle for that page**. With text: the story text is drawn onto the
-   page, a "text position" control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears, and `TEXT_SAFE`
-   keeps a >=10% empty margin so the text never touches an edge. The type size is set to a
-   **read-aloud size** (fill most of the text area over 2-4 lines) - v3.1 briefly told it to
-   shrink, one tester then found it too small, so v3.1.1 keeps the margin rule but drops the
-   shrink language. No-text mode:
-   the page is illustration only, the control is hidden, and the prompt hard-forbids any
-   text/letters/numbers. B&W pages carry `LINE_ART_LOCK` + a one-line `COLORING_REMINDER`;
-   color pages carry `COLOR_INTERIOR_LOCK`. No page numbers (added at the PDF-layout stage).
+   `.txt`. Each page prompt is a sectioned brief: opening + trim + "work only from this brief,
+   no uploaded reference needed" / STYLE (`LINE_ART_LOCK` or `COLOR_INTERIOR_LOCK` + the
+   chosen preset) / CHARACTER (match the fixed details, fresh pose for this page) / SCENE
+   (the ILLUSTRATION DIRECTION + "keep the scene simple") / PAGE LAYOUT. With text: the exact
+   line is drawn on the page, a text-position control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears,
+   and `TEXT_SAFE` keeps a >=10% edge margin at a **read-aloud size** (fill most of the text
+   area over 2-4 lines - not shrunk). No-text mode: illustration only, control hidden, all
+   text/letters/numbers forbidden. No page numbers (added at the PDF-layout stage).
 3. **Cover prompts + KDP listing helper** - story summary + optional title / subtitle /
    author / brand / badge / character colors + cover type + title position. Outputs a
    full-color front-cover prompt and a full-color back-cover prompt (barcode-safe:
@@ -82,16 +81,17 @@ Steps below work the same for all three modes.
    helper** builds a prompt for ChatGPT to write a plain-text book description (7 sections,
    no HTML), 7 backend keyword phrases, and 3 category suggestions.
 
-## Line-art lock
+## Line-art spec
 
-`LINE_ART_LOCK` forces pure black-and-white coloring-page line art: solid even-weight black
-outlines on pure white, shapes closed with open white interiors, and an explicit ban on
-color, grayscale, shading, shadows, hatching, crosshatching, stippling, gradients,
-halftones, solid black fills, heavy ink, dark backgrounds, sketch/pencil/charcoal texture,
-painterly effects, and realistic lighting. Enforced in three places (hardened from trial
-feedback that images came out shaded grey): the Step 1 `=== ART STYLE ===` block, the Step 1
-instruction to keep directions plain, and the Step 2 per-page `LINE_ART_LOCK` +
-`COLORING_REMINDER`.
+`LINE_ART_LOCK` is one clean paragraph (rewritten v3.2 from the old shouty "ABSOLUTELY NO:"
+wall; the redundant `COLORING_REMINDER` patch line is gone). It asks for bold, smooth,
+even-weight black outlines on pure white, big simple shapes with open white interiors, and
+bans, in one list: color, gray, shading/shadows, hatching/crosshatching, stippling,
+solid black fills, **fur / hair / wood-grain / fabric texture**, **scribbled ground lines**,
+**sparkle or motion marks**, and **busy backgrounds** - the last four added after anh
+compared a cluttered output to the original clean Pip test. It appears in the Step 1
+`=== ART STYLE ===` block and once per Step 2 page prompt (STYLE section). `COLOR_INTERIOR_LOCK`
+is the color-mode equivalent ("a few large elements, not a busy scene").
 
 ## Best results
 
