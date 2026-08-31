@@ -74,25 +74,23 @@ def has(feature: str) -> bool:
 # ASCII on purpose - it gets pasted into ChatGPT, so no smart quotes / dashes.
 # ----------------------------------------------------------------------------
 
-# INTERIOR line-art styles. FE = 2 presets. OTO1 adds 3 more B&W presets.
+# INTERIOR line-art styles. The kit targets ages 4-8 - no "adult" detail level.
+# FE = 1 preset. OTO1 adds 3 more B&W presets.
 STYLE_BW_FE = {
-    "Kids - bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for young children",
-    "Adults - clean & detailed": "clean outlines of an even, medium weight, with more detail and more elements per scene and smaller areas to color, staying crisp and fully closed throughout; made for older kids and adults",
+    "Bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for children ages 4-8",
 }
 STYLE_BW_PRO = {
-    "Fine ink detail": "fine, even ink linework with rich detail, delicate elements, and small areas to color; for confident colorists",
+    "A little more detail": "clean, even, medium-weight outlines with a bit more detail and a few more elements per scene, still fully closed and easy for a 7-8 year old to color",
     "Chunky marker": "very chunky, rounded marker-style outlines, huge simple shapes, almost no small detail; for the youngest hands",
     "Storybook classic": "even classic pen linework with a calm, traditional storybook feel and balanced detail",
 }
 # INTERIOR full-color styles - only reachable in the full-color mode (OTO2).
 STYLE_COLOR = {
-    "Kids - bold & simple": "bright, bold, cheerful full-color art: thick clean outlines, simple punchy shapes, flat lively color",
-    "Adults - clean & detailed": "refined full-color illustration: clean linework, richer detail and depth, harmonious color",
+    "Bold & simple": "bright, bold, cheerful full-color art: thick clean outlines, simple punchy shapes, flat lively color",
     "Soft watercolor": "gentle watercolor storybook illustration with soft edges and a warm, light palette",
     "Colored pencil": "colored-pencil illustration with visible strokes, cozy and handmade",
     "Flat vector": "clean flat vector illustration with bold shapes and a bright, limited palette",
     "Papercut collage": "layered papercut and collage look with simple shapes and a soft paper texture",
-    "Vintage midcentury": "vintage mid-century picture-book style with textured flat color and a muted retro palette",
     "Kawaii chibi": "cute kawaii chibi style with rounded shapes, big friendly eyes, and soft pastel color",
 }
 
@@ -603,7 +601,11 @@ if check_password():
 
     m1, m2 = st.columns(2)
     with m1:
-        style_label = st.selectbox("Illustration style", list(style_menu))
+        if len(style_menu) > 1:
+            style_label = st.selectbox("Illustration style", list(style_menu))
+        else:
+            style_label = list(style_menu)[0]
+            st.caption("Illustration style: " + style_label)
     with m2:
         shape_label_full = st.selectbox("Book size", list(shape_lookup))
     style_desc = style_menu[style_label]
