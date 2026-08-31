@@ -75,9 +75,10 @@ def has(feature: str) -> bool:
 # ----------------------------------------------------------------------------
 
 # INTERIOR line-art styles. The kit targets ages 4-8 - no "adult" detail level.
-# FE = 1 preset. OTO1 adds 3 more B&W presets.
+# FE = 2 thick-line presets. OTO1 adds 3 more B&W presets.
 STYLE_BW_FE = {
     "Bold & simple": "bold, thick outlines of a single even weight, large simple shapes, very little fine detail, and big open areas to color; made for children ages 4-8",
+    "Bold & rounded": "bold, thick outlines with every shape softly rounded and curved - friendly and cuddly, large simple shapes, very little fine detail, and big open areas to color; made for children ages 4-8",
 }
 STYLE_BW_PRO = {
     "A little more detail": "clean, even, medium-weight outlines with a bit more detail and a few more elements per scene, still fully closed and easy for a 7-8 year old to color",
