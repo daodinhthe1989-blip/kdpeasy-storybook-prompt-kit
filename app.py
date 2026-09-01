@@ -218,8 +218,7 @@ MODES = [
 # Step 1 - Story Engine prompt
 # ----------------------------------------------------------------------------
 
-def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode=False,
-                       no_text=False, extra_art=""):
+def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode=False, no_text=False):
     pc = page_count_raw.strip()
     if pc.isdigit():
         n = max(20, min(40, int(pc)))
@@ -265,9 +264,8 @@ def build_story_prompt(idea, page_count_raw, style_desc, shape_label, color_mode
         "names a character, use it and fill in the rest; otherwise create one that fits.",
         "",
         "ART & SCENES",
-        ("Planned look: " + style_desc.strip().rstrip(".") + "."
-         + (" Also apply on every page: " + extra_art.strip().rstrip(".") + "." if extra_art.strip() else "")
-         + " The full style spec goes in the ART STYLE block below."),
+        "Planned look: " + style_desc.strip().rstrip(".") + ". The full style spec goes in the ART "
+        "STYLE block below.",
         "Keep every scene simple - one main action and a few large elements over an open, "
         "uncluttered background. The finished art is " + shape_label + "; compose each scene for "
         "that shape with room to spare on every side.",
@@ -347,7 +345,7 @@ def extract_field(block, name):
 
 
 def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, style_desc,
-                      color_mode=False, no_text=False, extra_art=""):
+                      color_mode=False, no_text=False):
     text_area, illo_area = COMPOSITION[comp_label]
     story_text = fields.get("STORY TEXT") or "(use the story text for this page from your pasted story)"
     story_scene = fields.get("STORY SCENE") or ""
@@ -368,10 +366,6 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
         opening = "Create a clean black-and-white line-art coloring page for a children's storybook, ages 4-8."
         style_lock, ink = LINE_ART_LOCK, "solid black"
 
-    preset_line = "Preset: " + style_desc.strip().rstrip(".") + "."
-    if extra_art.strip():
-        preset_line += " Also apply: " + extra_art.strip().rstrip(".") + "."
-
     lines = [
         opening,
         shape_desc,
@@ -379,7 +373,7 @@ def build_page_prompt(page_num, fields, char_bible, comp_label, shape_desc, styl
         "",
         "STYLE",
         style_lock,
-        preset_line,
+        "Preset: " + style_desc.strip().rstrip(".") + ".",
         "",
         "CHARACTER - keep every fixed detail identical to this description:",
         bible,
@@ -620,10 +614,9 @@ if check_password():
             "fresh chat and paste the page prompt again. (This is a ChatGPT quirk, not the kit.)\n"
             "- **ChatGPT offers two images for page 1:** pick your favorite, then tell it \"match "
             "every following page to this one\" so the rest of the book stays consistent.\n"
-            "- **Want a different look?** Change the **Illustration style**, or type a note in "
-            "**Extra art direction**, then rebuild Step 1 and Step 2 - the change flows into every "
-            "page prompt. To tweak the character, edit the Character Bible in your pasted story and "
-            "rebuild Step 2.\n"
+            "- **Want a different look?** Change the **Illustration style**, then rebuild Step 1 "
+            "and Step 2 - it flows into every page prompt. To tweak the character, edit the "
+            "Character Bible in your pasted story and rebuild Step 2.\n"
             "- **Doing covers in a later session:** re-select the same **Book size** at the top "
             "first - it resets to the default each time you log in."
         )
@@ -669,14 +662,6 @@ if check_password():
         st.caption(shape_note)
     cover_style = cover_style_desc_for(style_label)
 
-    extra_art = st.text_input(
-        "Extra art direction (optional) - applied to every page",
-        placeholder="e.g. even thicker outlines, fewer background objects, more white space",
-    )
-    st.caption("Whatever you type here is added to the STYLE section of every page prompt (and the "
-               "story prompt), so one change updates the whole book. Rebuild Step 1 / Step 2 after "
-               "you edit it.")
-
     # ---- FE preview of the upgrades ----
     if not (has("pages") and has("pro")):
         try:
@@ -716,7 +701,7 @@ if check_password():
                    "round hedgehog in a flour-dusted apron\") and the prompt will keep it. If the "
                    "idea has no character, the AI invents one.")
 
-        sig_story = (idea, page_count, style_label, shape_label_full, color_mode, no_text, extra_art)
+        sig_story = (idea, page_count, style_label, shape_label_full, color_mode, no_text)
         if st.button("Build Story prompt", key="btn_story"):
             if not idea.strip():
                 st.warning("Enter a story idea first.")
@@ -725,8 +710,7 @@ if check_password():
                 if pcs.isdigit() and not (20 <= int(pcs) <= 40):
                     st.info("Page count is kept between 20 and 40 - using %d." % max(20, min(40, int(pcs))))
                 _stash("out_story", sig_story,
-                       build_story_prompt(idea, page_count, style_desc, shape_label_full,
-                                          color_mode, no_text, extra_art))
+                       build_story_prompt(idea, page_count, style_desc, shape_label_full, color_mode, no_text))
         _sp = _recall("out_story", sig_story)
         if _sp:
             st.success("Paste this into ChatGPT. When it finishes, copy the WHOLE reply into Step 2 "
@@ -746,7 +730,7 @@ if check_password():
         else:
             comp_label = st.selectbox("Story text position on the page", list(COMPOSITION))
 
-        sig_pages = (pasted, comp_label, style_label, shape_label_full, color_mode, no_text, extra_art)
+        sig_pages = (pasted, comp_label, style_label, shape_label_full, color_mode, no_text)
         if st.button("Build page prompts", key="btn_pages"):
             if not pasted.strip():
                 st.warning("Paste the story from Step 1 first.")
@@ -762,7 +746,7 @@ if check_password():
                     for num, block in pages:
                         fields = {lbl: extract_field(block, lbl) for lbl in FIELD_LABELS}
                         p = build_page_prompt(num, fields, bible, comp_label, shape_desc, style_desc,
-                                              color_mode, no_text, extra_art)
+                                              color_mode, no_text)
                         out.append((num, p))
                     _stash("out_pages", sig_pages, {"pages": out, "has_bible": bool(bible)})
         _pg = _recall("out_pages", sig_pages)
