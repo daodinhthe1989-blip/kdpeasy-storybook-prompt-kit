@@ -66,14 +66,23 @@ prompt is now half the length of the v3.1 one and reads professionally.
    page, just not printed.
 2. **Page prompts** - paste ChatGPT's whole reply back in (repeated page numbers after a
    `(continue)` are de-duped, later block wins). Outputs one image prompt per page + a bulk
-   `.txt`. Each page prompt is a sectioned brief: opening + trim + "work only from this brief,
-   no uploaded reference needed" / STYLE (`LINE_ART_LOCK` or `COLOR_INTERIOR_LOCK` + the
-   chosen preset) / CHARACTER (match the fixed details, fresh pose for this page) / SCENE
+   `.txt`, with a **Download button both above and below** the prompts (a tester copied 30
+   boxes by hand because the single bottom button was past a long scroll). Each page prompt is
+   a sectioned brief: opening + trim + "work only from this brief, no uploaded reference
+   needed" / STYLE (`LINE_ART_LOCK` or `COLOR_INTERIOR_LOCK` + the chosen preset + any Extra
+   art direction) / CHARACTER (match the fixed details, fresh pose for this page) / SCENE
    (the ILLUSTRATION DIRECTION + "keep the scene simple") / PAGE LAYOUT. With text: the exact
    line is drawn on the page, a text-position control (AUTO/TOP/BOTTOM/LEFT/RIGHT) appears,
    and `TEXT_SAFE` keeps a >=10% edge margin at a **read-aloud size** (fill most of the text
    area over 2-4 lines - not shrunk). No-text mode: illustration only, control hidden, all
    text/letters/numbers forbidden. No page numbers (added at the PDF-layout stage).
+
+**Extra art direction** (v3.3, 2026-08-31): a free-text field next to the style menu. Its
+text is appended to the STYLE section of every page prompt and to the story prompt's ART &
+SCENES note (`extra_art` param on `build_story_prompt` / `build_page_prompt`), so one nudge
+- "even thicker outlines", "fewer background objects" - flows into the whole book instead of
+being pasted into 32 prompts by hand. It is part of the Step 1 / Step 2 signatures, so
+changing it invalidates the stashed output.
 3. **Cover prompts + KDP listing helper** - story summary + optional title / subtitle /
    author / brand / badge / character colors + cover type + title position. Outputs a
    full-color front-cover prompt and a full-color back-cover prompt (barcode-safe:
