@@ -29,17 +29,26 @@ PASSWORDS = {
 CUSTOM_CSS = """
 <style>
 :root { color-scheme: light; }
-.stApp { background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%); }
-.kdp-card {
-    background: white; border-radius: 16px; padding: 2rem 2rem 1.5rem;
-    box-shadow: 0 4px 24px rgba(79, 70, 229, 0.08); margin-bottom: 1.5rem;
+/* navy field, like the book-cover art */
+.stApp { background: linear-gradient(160deg, #16264a 0%, #22406e 55%, #2c4a7d 100%); }
+/* the content sits on a white "book page" floating on the navy */
+.block-container, [data-testid="stMainBlockContainer"] {
+    background: #ffffff;
+    border-radius: 18px;
+    padding-left: 3rem; padding-right: 3rem;
+    margin-top: 1.5rem; margin-bottom: 3rem;
+    box-shadow: 0 14px 44px rgba(8, 18, 40, 0.38);
 }
-h1, h2, h3 { color: #4f46e5; }
+h1, h2, h3 { color: #1b2a4a; }
+h1 { border-bottom: 3px solid #c9a24b; padding-bottom: 0.3rem; }
+a, a:visited { color: #22406e; }
 .stButton>button, .stDownloadButton>button {
-    background-color: #10b981; color: white; border-radius: 10px; border: none;
+    background-color: #22406e; color: #ffffff; border-radius: 10px; border: none;
     padding: 0.6rem 1.4rem; font-weight: 600;
 }
-.stButton>button:hover, .stDownloadButton>button:hover { background-color: #059669; color: white; }
+.stButton>button:hover, .stDownloadButton>button:hover { background-color: #16264a; color: #ffffff; }
+/* the old empty helper div - hidden, the real card above replaces it */
+.kdp-card { display: none; }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
